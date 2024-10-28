@@ -16,16 +16,12 @@ import (
 	"github.com/vrypan/fargo/fctools"
 )
 
-var catCmd = &cobra.Command{
-	Use:   "cat",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: catRun,
+var getCmd = &cobra.Command{
+	Use:   "get [URI]",
+	Short: "Get a Farcaster URI",
+	Long: `Access Farcaster URIs like @vrypan/casts and 
+	@vrypan.eth/0x94f2036bbda708f33ce10269be968b16a09450ee.`,
+	Run: getRun,
 }
 
 func parse_url(args []string) (uint64, []string) {
@@ -54,7 +50,7 @@ func parse_url(args []string) (uint64, []string) {
 	return fid, parts[1:]
 }
 
-func catRun(cmd *cobra.Command, args []string) {
+func getRun(cmd *cobra.Command, args []string) {
 	fid, parts := parse_url(args)
 
 	hub := fctools.NewFarcasterHub()
@@ -104,7 +100,11 @@ func catRun(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	rootCmd.AddCommand(catCmd)
+
+	rootCmd.AddCommand(getCmd)
+	getCmd.Flags().BoolP("expand", "e", false, "Expand threads")
+	//getCmd.Flags().StringVarP("source", "s", "", "Source directory to read from")
+
 
 	// Here you will define your flags and configuration settings.
 
