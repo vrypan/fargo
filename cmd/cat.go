@@ -87,14 +87,21 @@ func catRun(cmd *cobra.Command, args []string) {
 		return
 	}
 	if len(parts) == 1 && parts[0] == "casts" {
-		s, err := fctools.PpCastsByFid(fid)
+		s, err := fctools.PrintCastsByFid(fid)
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println(s)
 		return
 	}
-	
+	if len(parts) == 1 && parts[0][0:2] == "0x" {
+		s, err := fctools.PrintCast( fid, parts[0] )
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(s)
+		return
+	}
 	fmt.Println("Not found")
 	os.Exit(1)
 }

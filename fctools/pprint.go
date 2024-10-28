@@ -12,6 +12,7 @@ import (
         "github.com/go-color-term/go-color-term/coloring"
 )
 
+const FARCASTER_EPOCH int64 = 1609459200
 const FMT_COLS = 80
 
 func _print_fid(fid uint64) string {
@@ -96,7 +97,7 @@ func FormatCast( msg pb.Message ) string {
     return out2
 }
 
-func PpCastsByFid(fid uint64) (string, error) {
+func PrintCastsByFid(fid uint64) (string, error) {
 	ldb.Open()
 	defer ldb.Close()
 
@@ -109,4 +110,20 @@ func PpCastsByFid(fid uint64) (string, error) {
     	out += FormatCast(*m)
     }
     return out, nil
+}
+
+func PrintCast(fid uint64, hash string) (string, error) {
+	ldb.Open()
+	defer ldb.Close()
+
+	hash_bytes, err := hex.DecodeString(hash[2:])
+	if err != nil {
+		return "", err
+	}
+
+	cast, e := GetCast(fid, hash_bytes)
+	if e != nil {
+		return "", err
+	}
+	return FormatCast(*cast), nil
 }

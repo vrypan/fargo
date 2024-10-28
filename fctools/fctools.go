@@ -4,22 +4,16 @@ import (
         "context"
         "log"
         "time"
-        "fmt"
-
         pb "github.com/vrypan/fargo/farcaster"
-        //ldb "github.com/vrypan/fargo/localdb"
         "google.golang.org/grpc"
-        //"google.golang.org/grpc/codes"
-        //"google.golang.org/grpc/status"
         "google.golang.org/grpc/credentials/insecure"
-        //"google.golang.org/protobuf/reflect/protoreflect"
         "encoding/json"
 )
 
-const FARCASTER_EPOCH int64 = 1609459200
+const hubAddr string = "38.242.252.228:2283"
 
 func HubInfo() ([]byte, error) {
-	conn, err := grpc.Dial("38.242.252.228:2283", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil {
             log.Fatalf("did not connect: %v", err)
             return nil, err
@@ -41,7 +35,7 @@ func HubInfo() ([]byte, error) {
 
 
 func GetUserData( fid uint64, user_data_type string, tojson bool) (string, error) {
-    conn, err := grpc.Dial("38.242.252.228:2283", grpc.WithTransportCredentials(insecure.NewCredentials()))
+    conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil {
             log.Fatalf("did not connect: %v", err)
             return "", err
@@ -67,7 +61,7 @@ func GetUserData( fid uint64, user_data_type string, tojson bool) (string, error
 }
 
 func GetUsernameProofsByFid(fid uint64) ([]string, error) {
-    conn, err := grpc.Dial("38.242.252.228:2283", grpc.WithTransportCredentials(insecure.NewCredentials()))
+    conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil {
         return nil, err
     }
@@ -89,7 +83,7 @@ func GetUsernameProofsByFid(fid uint64) ([]string, error) {
 }
 
 func GetFidByUsername(username string) (uint64, error){
-    conn, err := grpc.Dial("38.242.252.228:2283", grpc.WithTransportCredentials(insecure.NewCredentials()))
+    conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil {
             log.Fatalf("did not connect: %v", err)
             return uint64(0), err
@@ -109,7 +103,7 @@ func GetFidByUsername(username string) (uint64, error){
 }
 
 func GetCastsByFid( fid uint64 ) ([]*pb.Message, error) {
-    conn, err := grpc.Dial("38.242.252.228:2283", grpc.WithTransportCredentials(insecure.NewCredentials()))
+    conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil {
             log.Fatalf("did not connect: %v", err)
             return nil, err
@@ -127,25 +121,45 @@ func GetCastsByFid( fid uint64 ) ([]*pb.Message, error) {
     	return nil, err
     }
     return msg.Messages, nil
-    /*
-    var out string = ""
-    for _, m := range msg.Messages {
-    	//body := pb.CastAddBody(*m.Data.GetCastAddBody())
-    	//fmt.Println(body.Text)
-    	out += FormatCast(*m)
-    }
-    //b, err := json.Marshal(msg)	
-    return out, nil
-    */
 }
 
-func Test() {
-	r := pb.HubInfoResponse{}
-	m := r.ProtoReflect()
-    fds := m.Descriptor().Fields()
-    fmt.Println("----- newReflect:")
-    for k := 0; k < fds.Len(); k++ {
-        fd := fds.Get(k)
-        fmt.Println(fd.JSONName())
+func GetCast( fid uint64, hash []byte ) ( *pb.Message, error) {
+    conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+    if err != nil {
+            log.Fatalf("did not connect: %v", err)
+            return nil, err
     }
+    defer conn.Close()
+
+    client := pb.NewHubServiceClient(conn)
+    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    defer cancel()
+
+    msg, err := client.GetCast(ctx, &pb.CastId{Fid: fid, Hash: hash})
+    if err != nil {
+        return nil, err
+    }
+    return msg, nil
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
