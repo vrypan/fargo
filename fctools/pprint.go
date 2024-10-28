@@ -9,7 +9,7 @@ import (
         pb "github.com/vrypan/fargo/farcaster"
         ldb "github.com/vrypan/fargo/localdb"
         "github.com/muesli/reflow/wordwrap"
-        "github.com/fatih/color"
+        "github.com/go-color-term/go-color-term/coloring"
 )
 
 const FMT_COLS = 80
@@ -23,22 +23,27 @@ func _print_fid(fid uint64) string {
 			ldb.Set("FidName:"+fid_s, fname)
 		}
 	}
-	pp := color.New(color.FgMagenta).SprintFunc()
+	//pp := color.New(color.FgMagenta).SprintFunc()
+
 	if len(fname) > 0 {
-		return pp("@"+ fname)
+		return coloring.Magenta("@"+ fname)
 	} else {
-		return pp("@"+ fid_s)
+		return coloring.Magenta("@"+ fid_s)
 	}
 }
+func _print_timestamp(ts uint32) string {
+	ret := "["+time.Unix( int64(ts) + FARCASTER_EPOCH, 0).Format("2006-01-02 15:04") + "]"
+	return coloring.For(ret).Color(8).String()
+}
 func _print_url(s string) string {
-	pp := color.New(color.FgBlue).Add(color.Underline).SprintFunc()
-	return pp(s)
+	// pp := color.New(color.FgBlue).Add(color.Underline).SprintFunc()
+	return coloring.For(s).Green().Underline().String()
 }
 
 func formatCastId(fid uint64, hash []byte) string {
 	var out string ="" 
 	out += _print_fid(fid)
-	out += "/0x" + hex.EncodeToString(hash) 
+	out += coloring.For("/0x" + hex.EncodeToString(hash)).Color(8).String()
 	return out
 }
 
@@ -62,7 +67,8 @@ func FormatCast( msg pb.Message ) string {
 			out = "↳ In reply to " + _print_url(body.GetParentUrl()) + "\n\n" + out
 	}
 
-	out = " (" + time.Unix( int64(msg.Data.Timestamp) + FARCASTER_EPOCH, 0).String() + ")\n" + out
+	out = " " + _print_timestamp(msg.Data.Timestamp) + "\n" + out
+	// out = " (" + time.Unix( int64(msg.Data.Timestamp) + FARCASTER_EPOCH, 0).String() + ")\n" + out
 	out = formatCastId(msg.Data.Fid, msg.Hash ) + out
 	
  	if len(body.Embeds) > 0 {
