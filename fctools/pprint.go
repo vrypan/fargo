@@ -15,17 +15,34 @@ import (
 const FARCASTER_EPOCH int64 = 1609459200
 const FMT_COLS = 80
 
+func GetFidByFname(fname string) (uint64, error) {
+	ldb.Open()
+	defer ldb.Close()
+	var fid uint64
+	
+	fid_s, err := ldb.Get("FnameFid:"+fname)
+	if err == ldb.ERR_NOT_FOUND {
+		hub := NewFarcasterHub(); defer hub.Close()
+		fid, err = hub.GetFidByUsername(fname,)
+		if err == nil {
+			ldb.Set("FnameFid:"+fname, strconv.FormatUint(fid, 10))
+		}
+		return fid, nil
+	} else {
+		fid, _ = strconv.ParseUint(fid_s, 10, 64)
+		return fid, nil
+	}
+}
 func _print_fid(fid uint64) string {
 	fid_s := strconv.FormatUint(fid, 10)
 	fname, err := ldb.Get("FidName:"+fid_s)
 	if err == ldb.ERR_NOT_FOUND {
-		fname, err = GetUserData(fid, "USER_DATA_TYPE_USERNAME", false)
+		hub := NewFarcasterHub(); defer hub.Close()
+		fname, err = hub.GetUserData(fid, "USER_DATA_TYPE_USERNAME", false)
 		if err == nil {
 			ldb.Set("FidName:"+fid_s, fname)
 		}
 	}
-	//pp := color.New(color.FgMagenta).SprintFunc()
-
 	if len(fname) > 0 {
 		return coloring.Magenta("@"+ fname)
 	} else {
@@ -100,8 +117,9 @@ func FormatCast( msg pb.Message ) string {
 func PrintCastsByFid(fid uint64) (string, error) {
 	ldb.Open()
 	defer ldb.Close()
-
-	casts, err := GetCastsByFid(fid)
+	hub := NewFarcasterHub(); defer hub.Close()
+	
+	casts, err := hub.GetCastsByFid(fid)
 	if err != nil {
 		return "", err
 	}
@@ -121,7 +139,8 @@ func PrintCast(fid uint64, hash string) (string, error) {
 		return "", err
 	}
 
-	cast, e := GetCast(fid, hash_bytes)
+	hub := NewFarcasterHub(); defer hub.Close()
+	cast, e := hub.GetCast(fid, hash_bytes)
 	if e != nil {
 		return "", err
 	}

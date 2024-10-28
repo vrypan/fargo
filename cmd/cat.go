@@ -42,8 +42,11 @@ func parse_url(args []string) (uint64, []string) {
 	var fid uint64
 	var err error
 
+	if parts[0] == "@" {
+		return 0, nil
+	}
 	if fid, err = strconv.ParseUint(parts[0][1:], 10, 64); err != nil {
-    	fid, err = fctools.GetFidByUsername(parts[0][1:])
+    	fid, err = fctools.GetFidByFname(parts[0][1:])
     	if err != nil {
     		log.Fatalf("Error looking up %v [%v]", parts[0], err)
     	}
@@ -52,25 +55,19 @@ func parse_url(args []string) (uint64, []string) {
 }
 
 func catRun(cmd *cobra.Command, args []string) {
-	
-	/*
-	parts := strings.Split(args[0], "/")
-	
-	if parts[0][0:1] != "@" {
-		log.Fatal("Path should start with @")
-	}
-
-	var fid uint64
-	var err error
-
-	if fid, err = strconv.ParseUint(parts[0][1:], 10, 64); err != nil {
-    	fid, err = fctools.GetUsernameFid(parts[0][1:])
-    	if err != nil {
-    		log.Fatalf("Error looking up %v [%v]", parts[0], err)
-    	}
-	}
-	*/
 	fid, parts := parse_url(args)
+
+	hub := fctools.NewFarcasterHub()
+	defer hub.Close()
+
+	if fid==0 {
+		b,e := hub.HubInfo()
+		if e != nil {
+			log.Fatalf("Error! %v", e)
+		}
+		fmt.Println(string(b))
+		return
+	}
 
 	if len(parts) == 2 && parts[0] == "profile" {
 		//fid, _ := strconv.ParseUint(parts[0], 10, 64)
@@ -79,7 +76,7 @@ func catRun(cmd *cobra.Command, args []string) {
 		if len(req)>1 && req[1] == "message" { 
 			json = true 
 		}
-		s, err := fctools.GetUserData(fid, "USER_DATA_TYPE_"+strings.ToUpper(req[0]), json)
+		s, err := hub.GetUserData(fid, "USER_DATA_TYPE_"+strings.ToUpper(req[0]), json)
 		if err != nil {
 			log.Fatal(err)
 		}
