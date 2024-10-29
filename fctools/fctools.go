@@ -3,7 +3,7 @@ package fctools
 import (
         "context"
         "log"
-        "time"
+        //"time"
         pb "github.com/vrypan/fargo/farcaster"
         "google.golang.org/grpc"
         "google.golang.org/grpc/credentials/insecure"
@@ -26,7 +26,8 @@ func NewFarcasterHub() *FarcasterHub {
             log.Fatalf("Did not connect: %v", err)
     }
     client := pb.NewHubServiceClient(conn)
-    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    //ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+    ctx, cancel := context.WithCancel(context.Background())
     return &FarcasterHub {
         hubAddr: hubAddr,
         conn: conn,
@@ -103,4 +104,20 @@ func (hub FarcasterHub) GetCast( fid uint64, hash []byte ) ( *pb.Message, error)
         return nil, err
     }
     return msg, nil
+}
+
+func (hub FarcasterHub) GetCastReplies( fid uint64, hash []byte ) ( *pb.MessagesResponse, error) {
+    // GetCastsByParent(CastsByParentRequest) returns (MessagesResponse);
+    response, err := hub.client.GetCastsByParent(
+        hub.ctx, 
+        &pb.CastsByParentRequest{
+            Parent: &pb.CastsByParentRequest_ParentCastId{
+                ParentCastId: &pb.CastId{Fid:fid , Hash:hash},
+            },
+        },
+    )
+    if err != nil {
+        return nil, err
+    }
+    return response, nil
 }

@@ -5,6 +5,7 @@ import (
         "strconv"
         "strings"
         "encoding/hex"
+        //"fmt"
 
         pb "github.com/vrypan/fargo/farcaster"
         ldb "github.com/vrypan/fargo/localdb"
@@ -14,6 +15,16 @@ import (
 
 const FARCASTER_EPOCH int64 = 1609459200
 const FMT_COLS = 80
+
+func addPadding(s string, padding int) string {
+	padding_s := strings.Repeat(" ", padding)
+	s = strings.TrimSpace(s)
+	lines := strings.Split(s,"\n")
+	for i := range lines {
+		lines[i] = padding_s + lines[i]
+	}
+	return strings.Join(lines, "\n")
+}
 
 func GetFidByFname(fname string) (uint64, error) {
 	ldb.Open()
@@ -58,14 +69,20 @@ func _print_url(s string) string {
 	return coloring.For(s).Green().Underline().String()
 }
 
-func formatCastId(fid uint64, hash []byte) string {
+func formatCastId(fid uint64, hash []byte, highlight string) string {
 	var out string ="" 
+	hash_s := "0x" + hex.EncodeToString(hash)
 	out += _print_fid(fid)
-	out += coloring.For("/0x" + hex.EncodeToString(hash)).Color(8).String()
+	if hash_s == highlight {
+		out += coloring.For("/" + hash_s).Red().String()
+	} else {
+		out += coloring.For("/" + hash_s).Color(8).String()
+	}
+
 	return out
 }
 
-func FormatCast( msg pb.Message ) string {
+func FormatCast( msg pb.Message, padding int, showInReply bool, highlight string) string {
 	var out string
 
 	body := pb.CastAddBody(*msg.Data.GetCastAddBody())
@@ -78,16 +95,18 @@ func FormatCast( msg pb.Message ) string {
 	out += body.Text[ptr:] 
  	out = wordwrap.String(out, 79)
 
-	switch body.GetParent().(type) {
-		case *pb.CastAddBody_ParentCastId:
-			out = "↳ In reply to " + formatCastId(body.GetParentCastId().Fid, body.GetParentCastId().Hash ) + "\n\n" + out
-		case *pb.CastAddBody_ParentUrl:
-			out = "↳ In reply to " + _print_url(body.GetParentUrl()) + "\n\n" + out
+ 	if showInReply {
+		switch body.GetParent().(type) {
+			case *pb.CastAddBody_ParentCastId:
+				out = "↳ In reply to " + formatCastId(body.GetParentCastId().Fid, body.GetParentCastId().Hash, highlight ) + "\n\n" + out
+			case *pb.CastAddBody_ParentUrl:
+				out = "↳ In reply to " + _print_url(body.GetParentUrl()) + "\n\n" + out
+		}
 	}
 
 	out = " " + _print_timestamp(msg.Data.Timestamp) + "\n" + out
 	// out = " (" + time.Unix( int64(msg.Data.Timestamp) + FARCASTER_EPOCH, 0).String() + ")\n" + out
-	out = formatCastId(msg.Data.Fid, msg.Hash ) + out
+	out = formatCastId(msg.Data.Fid, msg.Hash, highlight ) + out
 	
  	if len(body.Embeds) > 0 {
  		out += "\n----"
@@ -95,7 +114,7 @@ func FormatCast( msg pb.Message ) string {
  	for _, embed := range body.Embeds {
 		switch embed.GetEmbed().(type) {
 			case *pb.Embed_CastId:
-				out += "\n* " + formatCastId(embed.GetCastId().Fid, embed.GetCastId().Hash )
+				out += "\n* " + formatCastId(embed.GetCastId().Fid, embed.GetCastId().Hash, highlight )
 			case *pb.Embed_Url:
 				out += "\n* " + _print_url(embed.GetUrl())
 		}
@@ -110,8 +129,8 @@ func FormatCast( msg pb.Message ) string {
  		}
  	}
  	out2 += "└───\n"
- 	//"➞"
-    return out2
+ 	
+    return addPadding( out2, padding )
 }
 
 func PrintCastsByFid(fid uint64) (string, error) {
@@ -125,24 +144,48 @@ func PrintCastsByFid(fid uint64) (string, error) {
 	}
     var out string = ""
     for _, m := range casts {
-    	out += FormatCast(*m)
+    	out += FormatCast(*m, 0, true, "") + "\n"
     }
     return out, nil
 }
 
-func PrintCast(fid uint64, hash string) (string, error) {
+func PrintCast(fid uint64, hash string, expand bool) string {
 	ldb.Open()
 	defer ldb.Close()
 
 	hash_bytes, err := hex.DecodeString(hash[2:])
 	if err != nil {
-		return "", err
+		return ""
+	}
+	hub := NewFarcasterHub(); defer hub.Close()
+	return _print_cast( hub, fid, hash_bytes, expand, 0, hash )
+}
+
+func _print_cast(hub *FarcasterHub, fid uint64, hash []byte, expand bool, padding int, highlight string) (string) {
+	cast, e := hub.GetCast(fid, hash)
+	if e != nil {
+		panic(e)
+		return ""
 	}
 
-	hub := NewFarcasterHub(); defer hub.Close()
-	cast, e := hub.GetCast(fid, hash_bytes)
-	if e != nil {
-		return "", err
+	cast_body := pb.CastAddBody(*cast.Data.GetCastAddBody())
+	
+	if cast_body.GetParentCastId() != nil && expand  && padding == 0 {
+		return _print_cast(hub, cast_body.GetParentCastId().Fid, cast_body.GetParentCastId().Hash, true, 0, highlight )
 	}
-	return FormatCast(*cast), nil
+	
+	showInReply := false
+	if padding == 0 {
+		showInReply = true
+	}
+	out := FormatCast(*cast, padding, showInReply, highlight)
+	if expand {
+		casts, err := hub.GetCastReplies( cast.Data.Fid, cast.Hash )
+		if err == nil {
+			for _, c := range casts.Messages {
+				out += "\n" + _print_cast( hub, c.Data.Fid, c.Hash, true, padding + 4, highlight )
+			}
+		}
+	}
+	return out
 }

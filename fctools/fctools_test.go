@@ -7,7 +7,8 @@ func Test_GetUsernameByFid_280(t *testing.T) {
     var fid uint64 = 280
     var expected_name = "vrypan"
     t.Logf("Looking up usernames for fid=%v", fid)
-    names, err := GetUsernameByFid(fid)
+    hub := NewFarcasterHub(); defer hub.Close()
+    names, err := hub.GetUsernameByFid(fid)
     if err != nil {
         t.Error(err)
     }
@@ -21,7 +22,8 @@ func Test_GetFidByUsername_vrypan(t *testing.T) {
     var expected_fid uint64 = 280
 
     t.Logf("Looking up fid for username=%v", username)
-    fid, err := GetFidByUsername(username)
+    hub := NewFarcasterHub(); defer hub.Close()
+    fid, err := hub.GetFidByUsername(username)
     if err != nil {
         t.Error(err)
     }

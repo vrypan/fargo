@@ -19,8 +19,9 @@ import (
 var getCmd = &cobra.Command{
 	Use:   "get [URI]",
 	Short: "Get a Farcaster URI",
-	Long: `Access Farcaster URIs like @vrypan/casts and 
-	@vrypan.eth/0x94f2036bbda708f33ce10269be968b16a09450ee.`,
+	Long: `URI Formats supported:
+- @username/casts
+- @username/0x<cast hash>`,
 	Run: getRun,
 }
 
@@ -52,6 +53,7 @@ func parse_url(args []string) (uint64, []string) {
 
 func getRun(cmd *cobra.Command, args []string) {
 	fid, parts := parse_url(args)
+	expandFlag, _ := cmd.Flags().GetBool("expand")
 
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
@@ -88,10 +90,7 @@ func getRun(cmd *cobra.Command, args []string) {
 		return
 	}
 	if len(parts) == 1 && parts[0][0:2] == "0x" {
-		s, err := fctools.PrintCast( fid, parts[0] )
-		if err != nil {
-			log.Fatal(err)
-		}
+		s := fctools.PrintCast( fid, parts[0], expandFlag )
 		fmt.Println(s)
 		return
 	}
