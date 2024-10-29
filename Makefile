@@ -11,3 +11,6 @@ farcaster-go: $(wildcard schemas/*.proto)
 	$(shell cd schemas; ls | xargs -I \{\} echo -n '--go_opt=M'{}=farcaster/" " '--go-grpc_opt=M'{}=farcaster/" " ) \
 	--go-grpc_out=. \
 	schemas/*.proto
+
+bin:
+	go build -ldflags "-w -s" -o fargo

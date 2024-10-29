@@ -2,48 +2,49 @@ package config
 
 import (
 	"fmt"
-	"encoding/json"
-	"io/ioutil"
+	"log"
+	"github.com/spf13/viper"
+	"strings"
 )
 
-type Config struct {
-	File string
-	CurrentPath string
-}
+// Initialize configuration using Viper
+func Load() {
+	//viper.AutomaticEnv()
+	viper.SetEnvPrefix("FARGO")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetConfigName("config")
+	viper.AddConfigPath("$HOME/.fargo")
+	viper.SetConfigType("yaml")
 
-/*
-func setPath(newPath string) error {
-	err := ioutil.WriteFile("fargo.txt", []byte("{ \"config\": {\"path\": newPath }}"), 0644)
-	return err
-}
-*/
-
-func (cfg Config) Print() {
-	fmt.Println("Config:", cfg)
-}
-
-func (cfg Config) ToJson() ([]byte, error){
-	b, err := json.Marshal(cfg)
-	return b, err
-}
-
-func (cfg Config) Save() error {
-	b, err := json.Marshal(cfg)
+	err := viper.ReadInConfig()
 	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(cfg.File, b, 0644)
-	return err
-}
-
-func Load(filename string) Config {
-	cfg := Config{filename, "/"}
-	
-	b, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return cfg
+		log.Fatalf("Error reading config file: %v", err)
 	}
 	
-	err = json.Unmarshal(b, &cfg)
-	return cfg
+}
+
+var GetString = viper.GetString
+var GetBool = viper.GetBool
+
+func Show() {
+	Load()
+
+	// Access configuration values
+	appName := viper.GetString("app.name")
+	appVersion := viper.GetString("app.version")
+	serverHost := viper.GetString("server.host")
+	serverPort := viper.GetInt("server.port")
+	dbUser := viper.GetString("database.user")
+	dbPassword := viper.GetString("database.password")
+	dbName := viper.GetString("database.dbname")
+
+	// Print configuration values
+	fmt.Printf("App Name: %s\n", appName)
+	fmt.Printf("App Version: %s\n", appVersion)
+	fmt.Printf("Server Host: %s\n", serverHost)
+	fmt.Printf("Server Port: %d\n", serverPort)
+	fmt.Printf("Database User: %s\n", dbUser)
+	fmt.Printf("Database Password: %s\n", dbPassword)
+	fmt.Printf("Database Name: %s\n", dbName)
 }

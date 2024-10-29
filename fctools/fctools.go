@@ -5,12 +5,11 @@ import (
         "log"
         //"time"
         pb "github.com/vrypan/fargo/farcaster"
+        "github.com/vrypan/fargo/config"
         "google.golang.org/grpc"
         "google.golang.org/grpc/credentials/insecure"
         "encoding/json"
 )
-
-const hubAddr string = "38.242.252.228:2283"
 
 type FarcasterHub struct {
     hubAddr string
@@ -21,6 +20,11 @@ type FarcasterHub struct {
 }
 
 func NewFarcasterHub() *FarcasterHub {
+    config.Load()
+    hubAddr := config.GetString("hub.host")+":"+config.GetString("hub.port")
+    if config.GetBool("hub.ssl") {
+        panic("SSL not implemented")
+    }
     conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil {
             log.Fatalf("Did not connect: %v", err)
