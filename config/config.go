@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var FARGO_VERSION string
+
 // Initialize configuration using Viper
 func Load() {
 	//viper.AutomaticEnv()

@@ -13,4 +13,7 @@ farcaster-go: $(wildcard schemas/*.proto)
 	schemas/*.proto
 
 bin:
-	go build -ldflags "-w -s" -o fargo
+	go build \
+	-ldflags "-w -s" \
+	-ldflags "-X github.com/vrypan/fargo/config.FARGO_VERSION=$(git describe --tags)" \
+	-o fargo
