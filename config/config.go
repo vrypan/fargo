@@ -19,34 +19,21 @@ func Load() {
 	viper.AddConfigPath("$HOME/.fargo")
 	viper.SetConfigType("yaml")
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatalf("Error reading config file: %v", err)
-	}
-	
+	viper.SetDefault("hub.host", "hoyt.farcaster.xyz")
+	viper.SetDefault("hub.port", "2283")
+	viper.SetDefault("hub.ssl", "true")
+
+	if err := viper.ReadInConfig(); err != nil {
+        if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+            fmt.Println("Creating ~/.fargo/config.yaml")
+            viper.SafeWriteConfig()
+        } else {
+            log.Fatalf("Error reading config file: %v", err)
+        }
+    }
+
+
 }
 
 var GetString = viper.GetString
 var GetBool = viper.GetBool
-
-func Show() {
-	Load()
-
-	// Access configuration values
-	appName := viper.GetString("app.name")
-	appVersion := viper.GetString("app.version")
-	serverHost := viper.GetString("server.host")
-	serverPort := viper.GetInt("server.port")
-	dbUser := viper.GetString("database.user")
-	dbPassword := viper.GetString("database.password")
-	dbName := viper.GetString("database.dbname")
-
-	// Print configuration values
-	fmt.Printf("App Name: %s\n", appName)
-	fmt.Printf("App Version: %s\n", appVersion)
-	fmt.Printf("Server Host: %s\n", serverHost)
-	fmt.Printf("Server Port: %d\n", serverPort)
-	fmt.Printf("Database User: %s\n", dbUser)
-	fmt.Printf("Database Password: %s\n", dbPassword)
-	fmt.Printf("Database Name: %s\n", dbName)
-}

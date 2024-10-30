@@ -14,7 +14,7 @@ farcaster-go: $(wildcard schemas/*.proto)
 	schemas/*.proto
 
 bin:
-	@echo Building v${FARGO_VERSION}
+	@echo Building fargo v${FARGO_VERSION}
 	go build \
 	-ldflags "-w -s" \
 	-ldflags "-X github.com/vrypan/fargo/config.FARGO_VERSION=${FARGO_VERSION}" \

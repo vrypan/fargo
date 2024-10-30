@@ -8,6 +8,7 @@ import (
         "github.com/vrypan/fargo/config"
         "google.golang.org/grpc"
         "google.golang.org/grpc/credentials/insecure"
+        "google.golang.org/grpc/credentials"
         "encoding/json"
 )
 
@@ -22,10 +23,13 @@ type FarcasterHub struct {
 func NewFarcasterHub() *FarcasterHub {
     config.Load()
     hubAddr := config.GetString("hub.host")+":"+config.GetString("hub.port")
+    cred := insecure.NewCredentials()
+
     if config.GetBool("hub.ssl") {
-        panic("SSL not implemented")
+        cred = credentials.NewClientTLSFromCert(nil, "")
     }
-    conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+    
+    conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(cred))
     if err != nil {
             log.Fatalf("Did not connect: %v", err)
     }
