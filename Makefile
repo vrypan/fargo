@@ -1,4 +1,5 @@
 HUBBLE_VER := "1.16.0"
+FARGO_VERSION := $(shell git describe --tags 2>/dev/null || echo "v0.0.0")
 
 all: 
 
@@ -13,7 +14,8 @@ farcaster-go: $(wildcard schemas/*.proto)
 	schemas/*.proto
 
 bin:
+	@echo Building v${FARGO_VERSION}
 	go build \
 	-ldflags "-w -s" \
-	-ldflags "-X github.com/vrypan/fargo/config.FARGO_VERSION=$(git describe --tags)" \
+	-ldflags "-X github.com/vrypan/fargo/config.FARGO_VERSION=${FARGO_VERSION}" \
 	-o fargo
