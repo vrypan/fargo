@@ -18,10 +18,12 @@ import (
 
 var getCmd = &cobra.Command{
 	Use:   "get [URI]",
-	Short: "Get a Farcaster URI",
-	Long: `URI Formats supported:
+	Aliases: []string{"g"},
+	Short: "Get Farcaster data",
+	Long: `URI formats supported:
 - @username/casts
-- @username/0x<cast hash>`,
+- @username/0x<cast hash>
+- @username/profile/[pfp|display|url|bio|username|location]`,
 	Run: getRun,
 }
 
@@ -54,6 +56,8 @@ func parse_url(args []string) (uint64, []string) {
 func getRun(cmd *cobra.Command, args []string) {
 	fid, parts := parse_url(args)
 	expandFlag, _ := cmd.Flags().GetBool("expand")
+	countFlag, _ := cmd.Flags().GetUint32("count")
+	grepFlag, _ := cmd.Flags().GetString("grep")
 
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
@@ -82,7 +86,7 @@ func getRun(cmd *cobra.Command, args []string) {
 		return
 	}
 	if len(parts) == 1 && parts[0] == "casts" {
-		s, err := fctools.PrintCastsByFid(fid)
+		s, err := fctools.PrintCastsByFid(fid, countFlag, grepFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -90,7 +94,7 @@ func getRun(cmd *cobra.Command, args []string) {
 		return
 	}
 	if len(parts) == 1 && parts[0][0:2] == "0x" {
-		s := fctools.PrintCast( fid, parts[0], expandFlag )
+		s := fctools.PrintCast( fid, parts[0], expandFlag, grepFlag )
 		fmt.Println(s)
 		return
 	}
@@ -102,6 +106,8 @@ func init() {
 
 	rootCmd.AddCommand(getCmd)
 	getCmd.Flags().BoolP("expand", "e", false, "Expand threads")
+	getCmd.Flags().Uint32P("count", "c", 20, "Number of casts to show when getting @user/casts")
+	getCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
 	//getCmd.Flags().StringVarP("source", "s", "", "Source directory to read from")
 
 

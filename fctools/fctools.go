@@ -92,9 +92,9 @@ func (hub FarcasterHub) GetFidByUsername(username string) (uint64, error){
     return fid, nil    
 }
 
-func (hub FarcasterHub) GetCastsByFid( fid uint64 ) ([]*pb.Message, error) {
+func (hub FarcasterHub) GetCastsByFid( fid uint64, page_size uint32 ) ([]*pb.Message, error) {
     var reverse bool = true
-    var page_size uint32 = 10
+    //var page_size uint32 = 10
     msg, err := hub.client.GetCastsByFid(hub.ctx, &pb.FidRequest{Fid: fid, Reverse: &reverse, PageSize: &page_size})
     if err != nil {
     	return nil, err

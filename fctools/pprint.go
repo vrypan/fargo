@@ -82,7 +82,7 @@ func formatCastId(fid uint64, hash []byte, highlight string) string {
 	return out
 }
 
-func FormatCast( msg pb.Message, padding int, showInReply bool, highlight string) string {
+func FormatCast( msg pb.Message, padding int, showInReply bool, highlight string, grep string) string {
 	var out string
 
 	body := pb.CastAddBody(*msg.Data.GetCastAddBody())
@@ -130,26 +130,30 @@ func FormatCast( msg pb.Message, padding int, showInReply bool, highlight string
  	}
  	out2 += "└───\n"
  	
-    return addPadding( out2, padding )
+ 	if strings.Contains(out2, grep) {
+    	return addPadding( out2, padding ) + "\n"
+    } else {
+    	return ""
+    }
 }
 
-func PrintCastsByFid(fid uint64) (string, error) {
+func PrintCastsByFid(fid uint64, count uint32, grep string) (string, error) {
 	ldb.Open()
 	defer ldb.Close()
 	hub := NewFarcasterHub(); defer hub.Close()
 	
-	casts, err := hub.GetCastsByFid(fid)
+	casts, err := hub.GetCastsByFid(fid, count)
 	if err != nil {
 		return "", err
 	}
     var out string = ""
     for _, m := range casts {
-    	out += FormatCast(*m, 0, true, "") + "\n"
+		out += FormatCast(*m, 0, true, "", grep)
     }
     return out, nil
 }
 
-func PrintCast(fid uint64, hash string, expand bool) string {
+func PrintCast(fid uint64, hash string, expand bool, grep string) string {
 	ldb.Open()
 	defer ldb.Close()
 
@@ -158,10 +162,10 @@ func PrintCast(fid uint64, hash string, expand bool) string {
 		return ""
 	}
 	hub := NewFarcasterHub(); defer hub.Close()
-	return _print_cast( hub, fid, hash_bytes, expand, 0, hash )
+	return _print_cast( hub, fid, hash_bytes, expand, 0, hash, grep )
 }
 
-func _print_cast(hub *FarcasterHub, fid uint64, hash []byte, expand bool, padding int, highlight string) (string) {
+func _print_cast(hub *FarcasterHub, fid uint64, hash []byte, expand bool, padding int, highlight string, grep string) (string) {
 	cast, e := hub.GetCast(fid, hash)
 	if e != nil {
 		panic(e)
@@ -171,19 +175,19 @@ func _print_cast(hub *FarcasterHub, fid uint64, hash []byte, expand bool, paddin
 	cast_body := pb.CastAddBody(*cast.Data.GetCastAddBody())
 	
 	if cast_body.GetParentCastId() != nil && expand  && padding == 0 {
-		return _print_cast(hub, cast_body.GetParentCastId().Fid, cast_body.GetParentCastId().Hash, true, 0, highlight )
+		return _print_cast(hub, cast_body.GetParentCastId().Fid, cast_body.GetParentCastId().Hash, true, 0, highlight, grep )
 	}
 	
 	showInReply := false
 	if padding == 0 {
 		showInReply = true
 	}
-	out := FormatCast(*cast, padding, showInReply, highlight)
+	out := FormatCast(*cast, padding, showInReply, highlight, grep)
 	if expand {
 		casts, err := hub.GetCastReplies( cast.Data.Fid, cast.Hash )
 		if err == nil {
 			for _, c := range casts.Messages {
-				out += "\n" + _print_cast( hub, c.Data.Fid, c.Hash, true, padding + 4, highlight )
+				out += _print_cast( hub, c.Data.Fid, c.Hash, true, padding + 4, highlight, grep )
 			}
 		}
 	}
