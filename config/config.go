@@ -10,7 +10,7 @@ import (
 var FARGO_VERSION string
 
 // Initialize configuration using Viper
-func Load() {
+func Load() string { // Load config and return config file path
 	//viper.AutomaticEnv()
 	viper.SetEnvPrefix("FARGO")
 	viper.AutomaticEnv()
@@ -31,8 +31,7 @@ func Load() {
             log.Fatalf("Error reading config file: %v", err)
         }
     }
-
-
+    return viper.ConfigFileUsed()
 }
 
 var GetString = viper.GetString
