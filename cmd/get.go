@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	//"github.com/vrypan/fargo/config"
 	"github.com/vrypan/fargo/fctools"
+	"github.com/vrypan/fargo/ipfs"
 )
 
 var getCmd = &cobra.Command{
@@ -56,6 +57,7 @@ func parse_url(args []string) (uint64, []string) {
 func getRun(cmd *cobra.Command, args []string) {
 	fid, parts := parse_url(args)
 	expandFlag, _ := cmd.Flags().GetBool("expand")
+	ipfsFlag, _ := cmd.Flags().GetBool("ipfs")
 	countFlag, _ := cmd.Flags().GetUint32("count")
 	grepFlag, _ := cmd.Flags().GetString("grep")
 
@@ -82,6 +84,11 @@ func getRun(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		if ipfsFlag && s[0:7]=="ipfs://" {
+			download_path := ipfs.GetCid(s[0:7])
+			fmt.Println(download_path)
+			return
+		} 
 		fmt.Println(s)
 		return
 	}
@@ -106,6 +113,7 @@ func init() {
 
 	rootCmd.AddCommand(getCmd)
 	getCmd.Flags().BoolP("expand", "e", false, "Expand threads")
+	getCmd.Flags().BoolP("ipfs", "", false, "If URI is @user/profile/url and it points to an ipfs;// URL, download it.")
 	getCmd.Flags().Uint32P("count", "c", 20, "Number of casts to show when getting @user/casts")
 	getCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
 	//getCmd.Flags().StringVarP("source", "s", "", "Source directory to read from")
