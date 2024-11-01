@@ -1,7 +1,15 @@
 `fargo` is a CLI interface to Farcaster written in Go.
 
 # Install
+
+## Generic
 Clone the repo, and run `make bin`. Copy the generated binary `fargo` to a location in your `$PATH`.
+
+## Homebrew
+
+Fargo can be installed with Brew by using the command below.
+
+brew install vrypan/fargo/fargo
 
 # Use
 
