@@ -47,3 +47,99 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+# .goreleaser.yaml
+brews:
+  -
+    # NOTE: make sure the url_template, the token and given repo (github or
+    # gitlab) owner and name are from the same kind.
+    # We will probably unify this in the next major version like it is
+    # done with scoop.
+
+    # URL which is determined by the given Token (github, gitlab or gitea).
+    #
+    # Default depends on the client.
+    # Templates: allowed.
+    url_template: "https://github.com/vrypan/fargo/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+
+    # Headers to include in the `url` stanza.
+    # This can be a more modern alternative to `download_strategy` in some
+    # cases.
+    url_headers:
+      - "Accept: application/octet-stream"
+      - 'Authorization: bearer #{ENV["HOMEBREW_GITHUB_API_TOKEN"]}'
+
+    # Git author used to commit to the repository.
+    commit_author:
+      name: Panagiotis Vryonis
+      email: vrypan@gmail.com
+
+    # The project name and current git tag are used in the format string.
+    #
+    # Templates: allowed.
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    # Directory inside the repository to put the formula.
+    directory: Formula
+
+    # Caveats for the user of your binary.
+    caveats: "fargo --help"
+
+    # Your app's homepage.
+    #
+    # Default: inferred from global metadata.
+    homepage: "https://github.com/vrypan/fargo"
+
+    # Your app's description.
+    #
+    # Templates: allowed.
+    # Default: inferred from global metadata.
+    description: "fargo is a CLI interface to Farcaster written in Go."
+
+    # SPDX identifier of your app's license.
+    #
+    # Default: inferred from global metadata.
+    license: "MIT"
+
+    # Setting this will prevent goreleaser to actually try to commit the updated
+    # formula - instead, the formula file will be stored on the dist directory
+    # only, leaving the responsibility of publishing it to the user.
+    # If set to auto, the release will not be uploaded to the homebrew tap
+    # in case there is an indicator for prerelease in the tag e.g. v1.0.0-rc1
+    #
+    # Templates: allowed.
+    skip_upload: true
+
+    # Custom block for brew.
+    # Can be used to specify alternate downloads for devel or head releases.
+
+    # So you can `brew test` your formula.
+    #
+    # Template: allowed
+    test: |
+      system "#{bin}/fargo version"
+
+    # Repository to push the generated files to.
+    repository:
+      # Repository owner.
+      #
+      # Templates: allowed.
+      owner: vrypan
+
+      # Repository name.
+      #
+      # Templates: allowed.
+      name: homebrew-fargo
+
+      # Optionally a branch can be provided.
+      #
+      # Default: default repository branch.
+      # Templates: allowed.
+      branch: main
+
+      # Optionally a token can be provided, if it differs from the token
+      # provided to GoReleaser
+      #
+      # Templates: allowed.
+      # token: "{{ .Env.GITHUB_PERSONAL_AUTH_TOKEN }}"
+
