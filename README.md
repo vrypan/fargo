@@ -9,7 +9,7 @@ Clone the repo, and run `make bin`. Copy the generated binary `fargo` to a locat
 
 Fargo can be installed with Brew by using the command below.
 
-brew install vrypan/fargo/fargo
+`brew install vrypan/fargo/fargo`
 
 # Use
 
