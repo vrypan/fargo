@@ -9,7 +9,7 @@ import (
 
 var configlsCmd = &cobra.Command{
     Use:   "ls",
-    Short: "Get a list of all settings",
+    Short: "Get a list of all parameters and their values",
     Run: config_ls,
 }
 

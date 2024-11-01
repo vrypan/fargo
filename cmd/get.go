@@ -1,18 +1,11 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
 	"strings"
 	"strconv"
-	"os"
 	"log"
-
 	"github.com/spf13/cobra"
-	//"github.com/vrypan/fargo/config"
 	"github.com/vrypan/fargo/fctools"
 )
 
@@ -98,26 +91,12 @@ func getRun(cmd *cobra.Command, args []string) {
 		fmt.Println(s)
 		return
 	}
-	fmt.Println("Not found")
-	os.Exit(1)
+	log.Fatal("Not found")
 }
 
 func init() {
-
 	rootCmd.AddCommand(getCmd)
 	getCmd.Flags().BoolP("expand", "e", false, "Expand threads")
 	getCmd.Flags().Uint32P("count", "c", 20, "Number of casts to show when getting @user/casts")
 	getCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
-	//getCmd.Flags().StringVarP("source", "s", "", "Source directory to read from")
-
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// lsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// lsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

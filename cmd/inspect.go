@@ -1,14 +1,9 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
 	"log"
 	"encoding/hex"
-
 	"github.com/spf13/cobra"
 	"github.com/vrypan/fargo/fctools"
 )
@@ -17,12 +12,16 @@ var inspectCmd = &cobra.Command{
 	Use:   "inspect [cast URI]",
 	Aliases: []string{"g"},
 	Short: "Inspect a cast",
-	Long: `The URI must be in the form:
-@username/0x<cast hash>`,
+	Long: `Returns a json of the corresponding message.
+The URI must be in the form: @username/0x<cast hash>`,
 	Run: inspectRun,
 }
 
 func inspectRun(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+        cmd.Help()
+        return
+	}
 	fid, parts := parse_url(args)
 	hexFlag, _ := cmd.Flags().GetBool("hex")
 	datesFlag, _ := cmd.Flags().GetBool("dates")
@@ -46,7 +45,7 @@ func inspectRun(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalf("Error converting message to JSON: %v", err)
 		}
-		fmt.Println(string(jsonData))
+		fmt.Printf("%s\n", string(jsonData))
 		return
 	}
 	log.Fatal("Not found")

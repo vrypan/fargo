@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"github.com/spf13/viper"
 	"strings"
@@ -25,7 +24,7 @@ func Load() string { // Load config and return config file path
 
 	if err := viper.ReadInConfig(); err != nil {
         if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-            fmt.Println("Creating ~/.fargo/config.yaml")
+            log.Println("Creating ~/.fargo/config.yaml")
             viper.SafeWriteConfig()
         } else {
             log.Fatalf("Error reading config file: %v", err)

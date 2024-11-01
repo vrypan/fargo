@@ -5,8 +5,6 @@ import (
         "strconv"
         "strings"
         "encoding/hex"
-        //"fmt"
-
         pb "github.com/vrypan/fargo/farcaster"
         ldb "github.com/vrypan/fargo/localdb"
         "github.com/muesli/reflow/wordwrap"
