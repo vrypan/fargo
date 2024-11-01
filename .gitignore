@@ -25,3 +25,5 @@ go.work.sum
 .env
 
 local.db
+
+dist/

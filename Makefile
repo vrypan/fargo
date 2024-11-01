@@ -13,9 +13,12 @@ farcaster-go: $(wildcard schemas/*.proto)
 	--go-grpc_out=. \
 	schemas/*.proto
 
-bin:
+local:
 	@echo Building fargo v${FARGO_VERSION}
 	go build \
 	-ldflags "-w -s" \
 	-ldflags "-X github.com/vrypan/fargo/config.FARGO_VERSION=${FARGO_VERSION}" \
 	-o fargo
+
+releases:
+	goreleaser release --snapshot --clean
