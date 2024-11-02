@@ -30,12 +30,18 @@ func downloadRun(cmd *cobra.Command, args []string) {
 	expandFlag, _ := cmd.Flags().GetBool("expand")
 	countFlag, _ := cmd.Flags().GetUint32("count")
 	grepFlag, _ := cmd.Flags().GetString("grep")
+	dirFlag, _ := cmd.Flags().GetString("dir")
 	mimetypeFlag, _ := cmd.Flags().GetString("mime-type")
 	dryrunFlag, _ := cmd.Flags().GetBool("dry-run")
 	skipdownloadedFlag, _ := cmd.Flags().GetBool("skip-downloaded")
 
-	config.Load()
-	download_dir := config.GetString("downloads.dir")
+	var download_dir string 
+	if dirFlag == "" {
+		config.Load()
+		download_dir = config.GetString("downloads.dir")
+	} else {
+		download_dir = dirFlag
+	}
 	if download_dir == "" {
 		download_dir = "."
 	}
@@ -135,4 +141,5 @@ func init() {
 	downloadCmd.Flags().StringP("mime-type", "", "", "Download embeds of mime/type")
 	downloadCmd.Flags().BoolP("dry-run", "", false, "Do not download the files, just print the URLs and local destination")
 	downloadCmd.Flags().BoolP("skip-downloaded", "", true, "If local file exists, do not download")
+	downloadCmd.Flags().StringP("dir", "", "", "Download directory. If not specified, the 'downloads.dir' config is used.")
 }
