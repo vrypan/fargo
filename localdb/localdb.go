@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"os/user"
 	"path/filepath"
+	//"github.com/vrypan/fargo/config"
 )
 
 var lock sync.Mutex
@@ -31,11 +32,8 @@ type _kv_store struct {
 
 var kv_store _kv_store
 
-var old_kv_store map[string]string
-
 var ERR_NOT_FOUND = errors.New("Not Found")
 var ERR_NOT_STORED = errors.New("Not Stored")
-
 
 func createDotDir() (string, error) {
 	// Get the current user
@@ -110,6 +108,10 @@ func load() error {
         return err
   }
   return nil
+}
+
+func Stats() (uint64, uint64, uint64){
+	return kv_store.Max_h, kv_store.Top, kv_store.Bottom
 }
 
 func Open() error {
