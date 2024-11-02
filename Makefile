@@ -21,4 +21,4 @@ local:
 	-o fargo
 
 releases:
-	goreleaser release --snapshot --clean
+	goreleaser release --clean
