@@ -10,6 +10,7 @@ require (
 
 require (
 	github.com/go-color-term/go-color-term v0.4.0
+	github.com/hashicorp/go-getter v1.7.6
 	github.com/muesli/reflow v0.3.0
 	github.com/spf13/viper v1.19.0
 	google.golang.org/grpc v1.67.1
@@ -34,7 +35,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-getter v1.7.6 // indirect
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

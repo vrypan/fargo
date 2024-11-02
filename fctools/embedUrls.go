@@ -1,13 +1,14 @@
 package fctools
 
 import (
-        "encoding/hex"
-        "log"
-        pb "github.com/vrypan/fargo/farcaster"
-        ldb "github.com/vrypan/fargo/localdb"
+		"log"
+		"encoding/hex"
+		pb "github.com/vrypan/fargo/farcaster"
+		ldb "github.com/vrypan/fargo/localdb"
+		"github.com/vrypan/fargo/fctools/embedurl"
 )
 
-func GetFidUrls(fid uint64, count uint32, grep string) []string {
+func GetFidUrls(fid uint64, count uint32, grep string) []embedurl.Url {
 	ldb.Open()
 	defer ldb.Close()
 
@@ -17,21 +18,15 @@ func GetFidUrls(fid uint64, count uint32, grep string) []string {
 	if err != nil {
 		return nil
 	}
-    
-    var embed_list []string
-    for _, m := range casts {
-    	cast_body := pb.CastAddBody(*m.Data.GetCastAddBody())
-    	for _, embed := range cast_body.Embeds {
-			if ebd := embed.GetUrl(); ebd != "" {
-				// Should check for mime/type here.
-				embed_list = append(embed_list, ebd)
-			}
-		}
-    }
-    return embed_list
+	
+	var embed_list []embedurl.Url
+	for _, cast := range casts {
+		embed_list = append( embed_list, embedurl.FromMessage(*cast)...)
+	}
+	return embed_list
 }
 
-func GetCastUrls(fid uint64, hash string, expand bool, grep string) []string {
+func GetCastUrls(fid uint64, hash string, expand bool, grep string) []embedurl.Url {
 	ldb.Open()
 	defer ldb.Close()
 
@@ -43,8 +38,8 @@ func GetCastUrls(fid uint64, hash string, expand bool, grep string) []string {
 	return _get_cast_urls( hub, fid, hash_bytes, expand, expand, grep )
 }
 
-func _get_cast_urls(hub *FarcasterHub, fid uint64, hash []byte, expand_up bool, expand_down bool, grep string) []string {
-	var embed_list []string
+func _get_cast_urls(hub *FarcasterHub, fid uint64, hash []byte, expand_up bool, expand_down bool, grep string) []embedurl.Url {
+	var embed_list []embedurl.Url
 	cast, e := hub.GetCast(fid, hash)
 	if e != nil {
 		log.Fatal(e)
@@ -57,13 +52,8 @@ func _get_cast_urls(hub *FarcasterHub, fid uint64, hash []byte, expand_up bool, 
 		return _get_cast_urls(hub, cast_body.GetParentCastId().Fid, cast_body.GetParentCastId().Hash, true, false, grep )
 	}
 	
-	// Should check for grep here
- 	for _, embed := range cast_body.Embeds {
-		if ebd := embed.GetUrl(); ebd != "" {
-			// Should check for mime/type here.
-			embed_list = append(embed_list, ebd)
-		}
-	}
+	embed_list = append(embed_list, embedurl.FromMessage(*cast)...)
+
 	if expand_down {
 		casts, err := hub.GetCastReplies( cast.Data.Fid, cast.Hash )
 		if err == nil {
