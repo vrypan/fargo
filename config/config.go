@@ -21,6 +21,7 @@ func Load() string { // Load config and return config file path
 	viper.SetDefault("hub.host", "hoyt.farcaster.xyz")
 	viper.SetDefault("hub.port", "2283")
 	viper.SetDefault("hub.ssl", "true")
+	viper.SetDefault("downloads.dir", "~/Downloads")
 
 	if err := viper.ReadInConfig(); err != nil {
         if _, ok := err.(viper.ConfigFileNotFoundError); ok {

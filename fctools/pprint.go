@@ -11,9 +11,6 @@ import (
         "github.com/go-color-term/go-color-term/coloring"
 )
 
-const FARCASTER_EPOCH int64 = 1609459200
-const FMT_COLS = 80
-
 func addPadding(s string, padding int) string {
 	padding_s := strings.Repeat(" ", padding)
 	s = strings.TrimSpace(s)

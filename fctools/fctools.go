@@ -12,6 +12,9 @@ import (
         "encoding/json"
 )
 
+const FARCASTER_EPOCH int64 = 1609459200
+const FMT_COLS = 80
+
 type FarcasterHub struct {
     hubAddr string
     conn *grpc.ClientConn
