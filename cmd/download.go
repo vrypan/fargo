@@ -28,7 +28,12 @@ URLs you want to download.`,
 func downloadRun(cmd *cobra.Command, args []string) {
 	fid, parts := parse_url(args)
 	expandFlag, _ := cmd.Flags().GetBool("expand")
-	countFlag, _ := cmd.Flags().GetUint32("count")
+	
+	countFlag := uint32( config.GetInt("get.count") )
+	if c, _:= cmd.Flags().GetInt("count") ; c >0 {
+		countFlag = uint32(c)
+	}
+	
 	grepFlag, _ := cmd.Flags().GetString("grep")
 	dirFlag, _ := cmd.Flags().GetString("dir")
 	mimetypeFlag, _ := cmd.Flags().GetString("mime-type")
@@ -136,7 +141,7 @@ func GetFile(url string, dst_dir string, dst_file string, skipdownloadedFlag boo
 func init() {
 	rootCmd.AddCommand(downloadCmd)
 	downloadCmd.Flags().BoolP("expand", "e", false, "Expand threads")
-	downloadCmd.Flags().Uint32P("count", "c", 20, "Number of casts to show when getting @user/casts")
+	downloadCmd.Flags().Uint32P("count", "c", 0, "Number of casts to show when getting @user/casts")
 	downloadCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
 	downloadCmd.Flags().StringP("mime-type", "", "", "Download embeds of mime/type")
 	downloadCmd.Flags().BoolP("dry-run", "", false, "Do not download the files, just print the URLs and local destination")
