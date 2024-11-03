@@ -21,7 +21,8 @@ func Load() string { // Load config and return config file path
 	viper.SetDefault("hub.host", "hoyt.farcaster.xyz")
 	viper.SetDefault("hub.port", "2283")
 	viper.SetDefault("hub.ssl", "true")
-	viper.SetDefault("downloads.dir", "~/Downloads")
+	viper.SetDefault("download.dir", "~/Downloads")
+	viper.SetDefault("get.count", 20)
 
 	if err := viper.ReadInConfig(); err != nil {
         if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -35,4 +36,7 @@ func Load() string { // Load config and return config file path
 }
 
 var GetString = viper.GetString
+var GetInt = viper.GetInt
 var GetBool = viper.GetBool
+var BindPFlag = viper.BindPFlag
+

@@ -38,7 +38,7 @@ func downloadRun(cmd *cobra.Command, args []string) {
 	var download_dir string 
 	if dirFlag == "" {
 		config.Load()
-		download_dir = config.GetString("downloads.dir")
+		download_dir = config.GetString("download.dir")
 	} else {
 		download_dir = dirFlag
 	}

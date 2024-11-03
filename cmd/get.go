@@ -6,6 +6,7 @@ import (
 	"log"
 	"github.com/spf13/cobra"
 	"github.com/vrypan/fargo/fctools"
+	"github.com/vrypan/fargo/config"
 )
 
 var getCmd = &cobra.Command{
@@ -22,7 +23,8 @@ var getCmd = &cobra.Command{
 func getRun(cmd *cobra.Command, args []string) {
 	fid, parts := parse_url(args)
 	expandFlag, _ := cmd.Flags().GetBool("expand")
-	countFlag, _ := cmd.Flags().GetUint32("count")
+	countFlag := uint32( config.GetInt("get.count") )
+	fmt.Printf("---- count = %v\n", countFlag)
 	grepFlag, _ := cmd.Flags().GetString("grep")
 
 	hub := fctools.NewFarcasterHub()
@@ -69,7 +71,11 @@ func getRun(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.AddCommand(getCmd)
+	config.Load()
+	
 	getCmd.Flags().BoolP("expand", "e", false, "Expand threads")
-	getCmd.Flags().Uint32P("count", "c", 20, "Number of casts to show when getting @user/casts")
+	getCmd.Flags().IntP("count", "c", 20, "Number of casts to show when getting @user/casts")
 	getCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
+
+	config.BindPFlag("count", getCmd.Flags().Lookup("get.count"))
 }
