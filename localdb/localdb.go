@@ -36,16 +36,11 @@ var ERR_NOT_FOUND = errors.New("Not Found")
 var ERR_NOT_STORED = errors.New("Not Stored")
 
 func createDotDir() (string, error) {
-	// Get the current user
 	usr, err := user.Current()
 	if err != nil {
 		return "", err
 	}
-
-	// Create the dot directory path (e.g., ~/.myapp/)
 	dotDir := filepath.Join(usr.HomeDir, dot_dir)
-
-	// Check if the directory exists, and create it if not
 	if _, err := os.Stat(dotDir); os.IsNotExist(err) {
 		err = os.Mkdir(dotDir, 0755)
 		if err != nil {
@@ -78,8 +73,6 @@ func save() error {
   f, err := os.Create(db_path); if err != nil {
     return err
   }
-  defer f.Close()
-  
   var b []byte
   b, err = json.Marshal(kv_store); if err != nil {
     return err
