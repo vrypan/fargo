@@ -1,7 +1,3 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
@@ -11,11 +7,10 @@ import (
 	"github.com/vrypan/fargo/localdb"
 )
 
-// cacheCmd represents the cache command
 var cacheCmd = &cobra.Command{
 	Use:   "cache",
 	Short: "Cache management",
-	Run: cacheManager,
+	Run:   cacheManager,
 }
 
 func cacheManager(cmd *cobra.Command, args []string) {

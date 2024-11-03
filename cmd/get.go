@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
-	"strconv"
 	"log"
+	"strconv"
+	"strings"
+
 	"github.com/spf13/cobra"
-	"github.com/vrypan/fargo/fctools"
 	"github.com/vrypan/fargo/config"
+	"github.com/vrypan/fargo/fctools"
 )
 
 var getCmd = &cobra.Command{
@@ -26,8 +27,6 @@ var getCmd = &cobra.Command{
 func getRun(cmd *cobra.Command, args []string) {
 	config.Load()
 
-	// config.BindPFlag("count", getCmd.Flags().Lookup("get.count"))
-	
 	fid, parts := parse_url(args)
 	expandFlag, _ := cmd.Flags().GetBool("expand")
 	countFlag := uint32( config.GetInt("get.count") )
@@ -54,8 +53,8 @@ func getRun(cmd *cobra.Command, args []string) {
 		//fid, _ := strconv.ParseUint(parts[0], 10, 64)
 		req := strings.Split(parts[1], ".")
 		var json = false
-		if len(req)>1 && req[1] == "message" { 
-			json = true 
+		if len(req)>1 && req[1] == "message" {
+			json = true
 		}
 		s, err := hub.GetUserData(fid, "USER_DATA_TYPE_"+strings.ToUpper(req[0]), json)
 		if err != nil {
@@ -87,13 +86,13 @@ func getRun(cmd *cobra.Command, args []string) {
 		urls := fctools.GetCastUrls(fid, parts[0], false, "")
 		if len(parts) == 2 {
 			for _, u := range urls {
-				fmt.Println(u.Link)		
+				fmt.Println(u.Link)
 			}
 		}
 		if len(parts) == 3 {
 			idx, err := strconv.Atoi(parts[2])
 			if err != nil {
-				log.Fatal("Not found")			
+				log.Fatal("Not found")
 			}
 			if idx < len(urls) {
 				fmt.Println(urls[idx].Link)
@@ -106,8 +105,6 @@ func getRun(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.AddCommand(getCmd)
-	config.Load()
-	
 	getCmd.Flags().BoolP("expand", "e", false, "Expand threads")
 	getCmd.Flags().IntP("count", "c", 0, "Number of casts to show when getting @user/casts")
 	getCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
