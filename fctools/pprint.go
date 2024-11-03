@@ -2,6 +2,7 @@ package fctools
 
 import (
 	"encoding/hex"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,7 @@ func GetFidByFname(fname string) (uint64, error) {
 	var fid uint64
 
 	fid_s, err := ldb.Get("FnameFid:" + fname)
+	fmt.Println("--- error code:", err)
 	if err == ldb.ERR_NOT_FOUND {
 		hub := NewFarcasterHub()
 		defer hub.Close()
@@ -37,6 +39,7 @@ func GetFidByFname(fname string) (uint64, error) {
 		}
 		return fid, nil
 	} else {
+		fmt.Println("--- converting to uint64", fid_s)
 		fid, _ = strconv.ParseUint(fid_s, 10, 64)
 		return fid, nil
 	}
@@ -195,4 +198,54 @@ func _print_cast(hub *FarcasterHub, fid uint64, hash []byte, expand bool, paddin
 		}
 	}
 	return out
+}
+
+func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed) {
+	var mentionPositions []uint32
+	var mentions []uint64
+	var embeds []*pb.Embed
+	var resultText string
+	var currentIndex int
+	var offset int
+
+	words := strings.Fields(text)
+	for _, word := range words {
+		if strings.HasPrefix(word, "@") && len(word) > 1 {
+			w := word[1:]
+			var fid uint64
+			var err error
+			fmt.Printf("--- Looking up fid: [%s]\n", w)
+			if len(w) > 0 && ((w[len(w)-1] >= 'a' && w[len(w)-1] <= 'z') || (w[len(w)-1] >= 'A' && w[len(w)-1] <= 'Z')) {
+				fid, err = GetFidByFname(w)
+				if err == nil {
+					mentionPositions = append(mentionPositions, uint32(currentIndex))
+					mentions = append(mentions, fid)
+				}
+				offset += len(word) + 1
+			} else {
+				fid, err = GetFidByFname(w[0 : len(w)-1])
+				if err == nil {
+					mentionPositions = append(mentionPositions, uint32(currentIndex))
+					mentions = append(mentions, fid)
+				}
+				offset += len(word) + 1
+				resultText += " " + string(w[len(w)-1])
+			}
+			fmt.Println("--- Fid found:", fid, err)
+		} else if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
+			embeds = append(embeds, &pb.Embed{
+				Embed: &pb.Embed_Url{Url: word},
+			})
+			resultText += " " + word
+			offset += len(word) + 1
+		} else {
+			if resultText != "" {
+				resultText += " "
+			}
+			resultText += word
+			offset += len(word) + 1
+		}
+		currentIndex = offset
+	}
+	return resultText, mentionPositions, mentions, embeds
 }
