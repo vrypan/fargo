@@ -23,7 +23,7 @@ func GetFidUrls(fid uint64, count uint32, grep string) []embedurl.Url {
 
 	var embed_list []embedurl.Url
 	for _, cast := range casts {
-		embed_list = append(embed_list, embedurl.FromMessage(*cast)...)
+		embed_list = append(embed_list, embedurl.FromMessage(cast)...)
 	}
 	return embed_list
 }
@@ -55,7 +55,7 @@ func _get_cast_urls(hub *FarcasterHub, fid uint64, hash []byte, expand_up bool, 
 		return _get_cast_urls(hub, cast_body.GetParentCastId().Fid, cast_body.GetParentCastId().Hash, true, false, grep)
 	}
 
-	embed_list = append(embed_list, embedurl.FromMessage(*cast)...)
+	embed_list = append(embed_list, embedurl.FromMessage(cast)...)
 
 	if expand_down {
 		casts, err := hub.GetCastReplies(cast.Data.Fid, cast.Hash)

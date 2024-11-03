@@ -67,7 +67,7 @@ func _print_url(s string) string {
 	return coloring.For(s).Green().Underline().String()
 }
 
-func formatCastId(fid uint64, hash []byte, highlight string, grep string) string {
+func formatCastId(fid uint64, hash []byte, highlight string) string {
 	var out string = ""
 	hash_s := "0x" + hex.EncodeToString(hash)
 	out += _print_fid(fid)
@@ -95,7 +95,7 @@ func FormatCast(msg *pb.Message, padding int, showInReply bool, highlight string
 	if showInReply {
 		switch body.GetParent().(type) {
 		case *pb.CastAddBody_ParentCastId:
-			out = "↳ In reply to " + formatCastId(body.GetParentCastId().Fid, body.GetParentCastId().Hash, highlight, grep) + "\n\n" + out
+			out = "↳ In reply to " + formatCastId(body.GetParentCastId().Fid, body.GetParentCastId().Hash, highlight) + "\n\n" + out
 		case *pb.CastAddBody_ParentUrl:
 			out = "↳ In reply to " + _print_url(body.GetParentUrl()) + "\n\n" + out
 		}
@@ -103,7 +103,7 @@ func FormatCast(msg *pb.Message, padding int, showInReply bool, highlight string
 
 	out = " " + _print_timestamp(msg.Data.Timestamp) + "\n" + out
 	// out = " (" + time.Unix( int64(msg.Data.Timestamp) + FARCASTER_EPOCH, 0).String() + ")\n" + out
-	out = formatCastId(msg.Data.Fid, msg.Hash, highlight, grep) + out
+	out = formatCastId(msg.Data.Fid, msg.Hash, highlight) + out
 
 	if len(body.Embeds) > 0 {
 		out += "\n----"
@@ -111,7 +111,7 @@ func FormatCast(msg *pb.Message, padding int, showInReply bool, highlight string
 	for _, embed := range body.Embeds {
 		switch embed.GetEmbed().(type) {
 		case *pb.Embed_CastId:
-			out += "\n* " + formatCastId(embed.GetCastId().Fid, embed.GetCastId().Hash, highlight, grep)
+			out += "\n* " + formatCastId(embed.GetCastId().Fid, embed.GetCastId().Hash, highlight)
 		case *pb.Embed_Url:
 			out += "\n* " + _print_url(embed.GetUrl())
 		}

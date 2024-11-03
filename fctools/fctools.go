@@ -37,12 +37,11 @@ func NewFarcasterHub() *FarcasterHub {
 		cred = credentials.NewClientTLSFromCert(nil, "")
 	}
 
-	conn, err := grpc.Dial(hubAddr, grpc.WithTransportCredentials(cred))
+	conn, err := grpc.DialContext(context.Background(), hubAddr, grpc.WithTransportCredentials(cred))
 	if err != nil {
 		log.Fatalf("Did not connect: %v", err)
 	}
 	client := pb.NewHubServiceClient(conn)
-	//ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	ctx, cancel := context.WithCancel(context.Background())
 	return &FarcasterHub{
 		hubAddr:    hubAddr,
@@ -68,10 +67,13 @@ func (hub FarcasterHub) HubInfo() ([]byte, error) {
 	return b, err
 }
 
-func (hub FarcasterHub) SubmitMessageData(messageData pb.MessageData, signerPrivate []byte, signerPublic []byte) (*pb.Message, error) {
+func (hub *FarcasterHub) SubmitMessageData(messageData *pb.MessageData, signerPrivate []byte, signerPublic []byte) (*pb.Message, error) {
 	hash_scheme := pb.HashScheme(pb.HashScheme_value["HASH_SCHEME_BLAKE3"])
 	signature_scheme := pb.SignatureScheme(pb.SignatureScheme_value["SIGNATURE_SCHEME_ED25519"])
-	data_bytes, err := proto.Marshal(&messageData)
+	data_bytes, err := proto.Marshal(messageData)
+	if err != nil {
+		return nil, err
+	}
 	signerPublic_ := append(signerPrivate, signerPublic...) // required by ed25519 Go implementation
 
 	hasher := blake3.New()
@@ -81,7 +83,7 @@ func (hub FarcasterHub) SubmitMessageData(messageData pb.MessageData, signerPriv
 	signature := ed25519.Sign(signerPublic_, hash)
 
 	message := pb.Message{
-		Data:            &messageData,
+		Data:            messageData,
 		Hash:            hash,
 		HashScheme:      hash_scheme,
 		Signature:       signature,

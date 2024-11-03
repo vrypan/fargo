@@ -24,7 +24,7 @@ type Url struct {
 	Extension   string
 }
 
-func FromMessage(cast pb.Message) []Url {
+func FromMessage(cast *pb.Message) []Url {
 	var ret []Url
 	cast_body := pb.CastAddBody(*cast.Data.GetCastAddBody())
 	for i, embed := range cast_body.Embeds {
