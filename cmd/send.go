@@ -9,7 +9,8 @@ import (
 
 // sendCmd represents the send command
 var sendCmd = &cobra.Command{
-	Use: "send",
+	Use:   "send",
+	Short: "Submit messages to the network",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},

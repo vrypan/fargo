@@ -18,16 +18,20 @@ fargo --help
 
 A command line tool to interact with Farcaster
 
+A command line tool to interact with Farcaster
+
 Usage:
   fargo [command]
 
 Available Commands:
+  cache       Cache management
   completion  Generate the autocompletion script for the specified shell
   config      Get/Set fargo configuration parameters
   download    Download Farcaster-embedded URLs
   get         Get Farcaster data
   help        Help about any command
   inspect     Inspect a cast
+  send
   version     Get the current version.
 
 Flags:
@@ -36,7 +40,7 @@ Flags:
 Use "fargo [command] --help" for more information about a command.
 ```
 
-The most interesting command is `fargo get`. 
+The most interesting command is `fargo get`.
 
 Try `fargo get --help` or `fargo get @vrypan.eth/0x3e9f6825dc23a14efb4c5d71723f5bea2f89095f -e`.
 

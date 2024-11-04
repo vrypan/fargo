@@ -36,7 +36,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		log.Fatal("Private key error: private key string too short")
 	}
 	if privateKey, err = hex.DecodeString(s[2:]); err != nil {
-		log.Fatalf("Private key error: %v", err)
+		log.Fatalf("Private key error: %v\nUse --help to see options.", err)
 	}
 
 	s = config.GetString("cast.pubkey")
@@ -47,7 +47,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		log.Fatal("Public key error: public key string too short")
 	}
 	if publicKey, err = hex.DecodeString(s[2:]); err != nil {
-		log.Fatalf("Public key error: %v", err)
+		log.Fatalf("Public key error: %v\nUse --help to see options.", err)
 	}
 
 	fid := uint64(config.GetInt("cast.fid"))
@@ -55,7 +55,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		fid = c
 	}
 	if fid == 0 {
-		log.Fatal("No fid: fid is zero")
+		log.Fatal("No fid: fid is zero. Use --help to see options.")
 	}
 
 	if len(args) == 0 {
@@ -100,6 +100,6 @@ func runSendCast(cmd *cobra.Command, args []string) {
 func init() {
 	sendCmd.AddCommand(sendCastCmd)
 	sendCastCmd.Flags().Uint64P("fid", "", 0, "Fid who is casting")
-	sendCastCmd.Flags().StringP("pubkey", "", "", "Application public key")
-	sendCastCmd.Flags().StringP("privkey", "", "", "Application private key")
+	sendCastCmd.Flags().StringP("pubkey", "", "", "Application public key. Ex: 0xdef1234....")
+	sendCastCmd.Flags().StringP("privkey", "", "", "Application private key. Ex: 0xabc1234....")
 }

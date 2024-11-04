@@ -2,8 +2,9 @@ package config
 
 import (
 	"log"
-	"github.com/spf13/viper"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 var FARGO_VERSION string
@@ -23,6 +24,9 @@ func Load() string { // Load config and return config file path
 	viper.SetDefault("hub.ssl", "true")
 	viper.SetDefault("download.dir", "~/Downloads")
 	viper.SetDefault("get.count", 20)
+	viper.SetDefault("cast.fid", 0)
+	viper.SetDefault("cast.privkey", "")
+	viper.SetDefault("cast.pubkey", "")
 
 	if err := viper.ReadInConfig(); err != nil {
         if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -39,4 +43,3 @@ var GetString = viper.GetString
 var GetInt = viper.GetInt
 var GetBool = viper.GetBool
 var BindPFlag = viper.BindPFlag
-
