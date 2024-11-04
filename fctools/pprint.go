@@ -219,14 +219,17 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed) {
 						mentionPositions = append(mentionPositions, uint32(currentIndex))
 						mentions = append(mentions, fid)
 					}
-					offset += len(word) + 1
+					//offset += len(word) + 1
+					offset += 2
+					resultText += " "
 				} else {
 					fid, err = GetFidByFname(w[0 : len(w)-1])
 					if err == nil {
 						mentionPositions = append(mentionPositions, uint32(currentIndex))
 						mentions = append(mentions, fid)
 					}
-					offset += len(word) + 1
+					//offset += len(word) + 1
+					offset += 2
 					resultText += " " + string(w[len(w)-1])
 				}
 			} else if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
