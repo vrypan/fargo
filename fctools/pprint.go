@@ -2,7 +2,6 @@ package fctools
 
 import (
 	"encoding/hex"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -29,7 +28,6 @@ func GetFidByFname(fname string) (uint64, error) {
 	var fid uint64
 
 	fid_s, err := ldb.Get("FnameFid:" + fname)
-	fmt.Println("--- error code:", err)
 	if err == ldb.ERR_NOT_FOUND {
 		hub := NewFarcasterHub()
 		defer hub.Close()
@@ -39,7 +37,6 @@ func GetFidByFname(fname string) (uint64, error) {
 		}
 		return fid, nil
 	} else {
-		fmt.Println("--- converting to uint64", fid_s)
 		fid, _ = strconv.ParseUint(fid_s, 10, 64)
 		return fid, nil
 	}
