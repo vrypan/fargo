@@ -13,8 +13,11 @@ import (
 
 var sendCastCmd = &cobra.Command{
 	Use:   "cast [text]",
-	Short: "Send a Cast Message to the hub",
-	Run:   runSendCast,
+	Short: "Send new cast",
+	Long: `[text] is the full cast text.
+Any @mentions will be identified automatically and
+the first two links will be converted to embeds.`,
+	Run: runSendCast,
 }
 
 func runSendCast(cmd *cobra.Command, args []string) {
@@ -64,6 +67,9 @@ func runSendCast(cmd *cobra.Command, args []string) {
 
 	text := args[0]
 	castText, mentionsPositions, mentions, embeds := fctools.ProcessCastBody(text)
+	if len(embeds) > 2 {
+		embeds = embeds[0:2]
+	}
 
 	messageData := &pb.MessageData{
 		Type:      pb.MessageType(pb.MessageType_value["MESSAGE_TYPE_CAST_ADD"]),
@@ -92,7 +98,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	rootCmd.AddCommand(sendCastCmd)
+	sendCmd.AddCommand(sendCastCmd)
 	sendCastCmd.Flags().Uint64P("fid", "", 0, "Fid who is casting")
 	sendCastCmd.Flags().StringP("pubkey", "", "", "Application public key")
 	sendCastCmd.Flags().StringP("privkey", "", "", "Application private key")

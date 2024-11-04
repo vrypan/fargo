@@ -216,7 +216,6 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed) {
 				w := word[1:]
 				var fid uint64
 				var err error
-				fmt.Printf("--- Looking up fid: [%s]\n", w)
 				if len(w) > 0 && ((w[len(w)-1] >= 'a' && w[len(w)-1] <= 'z') || (w[len(w)-1] >= 'A' && w[len(w)-1] <= 'Z')) {
 					fid, err = GetFidByFname(w)
 					if err == nil {
@@ -233,7 +232,6 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed) {
 					offset += len(word) + 1
 					resultText += " " + string(w[len(w)-1])
 				}
-				fmt.Println("--- Fid found:", fid, err)
 			} else if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
 				embeds = append(embeds, &pb.Embed{
 					Embed: &pb.Embed_Url{Url: word},
