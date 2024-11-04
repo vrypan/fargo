@@ -67,13 +67,10 @@ func (hub FarcasterHub) HubInfo() ([]byte, error) {
 	return b, err
 }
 
-func (hub *FarcasterHub) SubmitMessageData(messageData *pb.MessageData, signerPrivate []byte, signerPublic []byte) (*pb.Message, error) {
+func (hub FarcasterHub) SubmitMessageData(messageData *pb.MessageData, signerPrivate []byte, signerPublic []byte) (*pb.Message, error) {
 	hash_scheme := pb.HashScheme(pb.HashScheme_value["HASH_SCHEME_BLAKE3"])
 	signature_scheme := pb.SignatureScheme(pb.SignatureScheme_value["SIGNATURE_SCHEME_ED25519"])
 	data_bytes, err := proto.Marshal(messageData)
-	if err != nil {
-		return nil, err
-	}
 	signerPublic_ := append(signerPrivate, signerPublic...) // required by ed25519 Go implementation
 
 	hasher := blake3.New()

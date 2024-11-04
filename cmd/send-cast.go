@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/hex"
-	"fmt"
 	"log"
 	"time"
 
@@ -55,7 +54,6 @@ func runSendCast(cmd *cobra.Command, args []string) {
 	if fid == 0 {
 		log.Fatal("No fid: fid is zero")
 	}
-	fmt.Printf("FID: %#v", fid)
 
 	if len(args) == 0 {
 		log.Fatal("Missing arguments: text argument required")
@@ -65,12 +63,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 	defer hub.Close()
 
 	text := args[0]
-
 	castText, mentionsPositions, mentions, embeds := fctools.ProcessCastBody(text)
-	fmt.Println(castText)
-	fmt.Println(mentionsPositions)
-	fmt.Println(mentions)
-	fmt.Println(embeds)
 
 	messageData := &pb.MessageData{
 		Type:      pb.MessageType(pb.MessageType_value["MESSAGE_TYPE_CAST_ADD"]),
@@ -88,16 +81,11 @@ func runSendCast(cmd *cobra.Command, args []string) {
 			}},
 	}
 
-	fmt.Printf("MessageData:\n%#v\n", messageData)
-	fmt.Println("Keys", privateKey, publicKey)
-
-	msg, err := hub.SubmitMessageData(
+	_, err = hub.SubmitMessageData(
 		messageData,
 		privateKey,
 		publicKey,
 	)
-
-	fmt.Println(msg)
 	if err != nil {
 		log.Fatalf("Error submitting message: %v", err)
 	}
