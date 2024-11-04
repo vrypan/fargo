@@ -5,7 +5,7 @@
 # Install
 
 ## Generic
-Clone the repo, and run `make bin`. Copy the generated binary `fargo` to a location in your `$PATH`.
+Clone the repo, and run `make local`. Copy the generated binary `fargo` to a location in your `$PATH`.
 
 ## Homebrew
 
