@@ -1,3 +1,5 @@
+![fargo-logo](https://github.com/user-attachments/assets/9283719d-e434-4de3-b2e3-16f607e46e8f)
+
 `fargo` is a CLI interface to Farcaster written in Go.
 
 # Install
