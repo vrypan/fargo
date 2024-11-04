@@ -14,10 +14,6 @@ Fargo can be installed with Brew by using the command below.
 # Use
 
 ```
-fargo --help
-
-A command line tool to interact with Farcaster
-
 A command line tool to interact with Farcaster
 
 Usage:
@@ -31,8 +27,8 @@ Available Commands:
   get         Get Farcaster data
   help        Help about any command
   inspect     Inspect a cast
-  send
-  version     Get the current version.
+  send        Submit messages to the network
+  version     Get the current version
 
 Flags:
   -h, --help   help for fargo
@@ -45,3 +41,9 @@ The most interesting command is `fargo get`.
 Try `fargo get --help` or `fargo get @vrypan.eth/0x3e9f6825dc23a14efb4c5d71723f5bea2f89095f -e`.
 
 The second one will also make you appreciate how much spam is suppressed by Warpcast.
+
+## Interacting with the network
+
+To interact with the network (currently `fargo send cast`) you will need an app keypair (private/public).
+At the moment, Fargo does not provide a way to generate these keys, but you can use a service like
+https://www.castkeys.xyz to generate them.
