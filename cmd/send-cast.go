@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/hex"
+	"fmt"
 	"log"
 	"time"
 
@@ -87,7 +88,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 			}},
 	}
 
-	_, err = hub.SubmitMessageData(
+	msg, err := hub.SubmitMessageData(
 		messageData,
 		privateKey,
 		publicKey,
@@ -95,6 +96,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Error submitting message: %v", err)
 	}
+	fmt.Printf("Success: %s\n", fctools.FormatCastId(msg.Data.Fid, msg.Hash, ""))
 }
 
 func init() {
