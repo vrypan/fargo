@@ -59,6 +59,10 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		log.Fatal("No fid: fid is zero. Use --help to see options.")
 	}
 
+	replyToFlag, _ := cmd.Flags().GetString("reply-to")
+
+	prepareFlag, _ := cmd.Flags().GetBool("prepare")
+
 	if len(args) == 0 {
 		log.Fatal("Missing arguments: text argument required")
 	}
@@ -72,22 +76,42 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		embeds = embeds[0:2]
 	}
 
+	messageBody := &pb.CastAddBody{
+		Mentions:          mentions,
+		MentionsPositions: mentionsPositions,
+		//Parent:            nil,
+		Text:   castText,
+		Type:   0,
+		Embeds: embeds,
+	}
+
+	if replyToFlag != "" {
+		parentFid, parentHashString := ParseFcURI(replyToFlag)
+		parentHash := HashToBytes(parentHashString[0])
+		parentCast := &pb.CastAddBody_ParentCastId{ParentCastId: &pb.CastId{Fid: parentFid, Hash: parentHash}}
+		messageBody.Parent = parentCast
+	}
+
 	messageData := &pb.MessageData{
 		Type:      pb.MessageType(pb.MessageType_value["MESSAGE_TYPE_CAST_ADD"]),
 		Fid:       fid,
 		Timestamp: uint32(time.Now().Unix() - fctools.FARCASTER_EPOCH),
 		Network:   pb.FarcasterNetwork(pb.FarcasterNetwork_value["FARCASTER_NETWORK_MAINNET"]),
 		Body: &pb.MessageData_CastAddBody{
-			CastAddBody: &pb.CastAddBody{
-				Mentions:          mentions,
-				MentionsPositions: mentionsPositions,
-				Parent:            nil,
-				Text:              castText,
-				Type:              0,
-				Embeds:            embeds,
-			}},
+			CastAddBody: messageBody,
+		},
 	}
 
+	if prepareFlag {
+		jsonData, err := fctools.Marshal(
+			messageData, fctools.MarshalOptions{Bytes2Hash: true, Timestamp2Date: false},
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(jsonData))
+		return
+	}
 	msg, err := hub.SubmitMessageData(
 		messageData,
 		privateKey,
@@ -96,7 +120,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Error submitting message: %v", err)
 	}
-	fmt.Printf("Success: %s\n", fctools.FormatCastId(msg.Data.Fid, msg.Hash, ""))
+	fmt.Printf("Sent: %s\n", fctools.FormatCastId(msg.Data.Fid, msg.Hash, ""))
 }
 
 func init() {
@@ -104,4 +128,6 @@ func init() {
 	sendCastCmd.Flags().Uint64P("fid", "", 0, "Fid who is casting")
 	sendCastCmd.Flags().StringP("pubkey", "", "", "Application public key. Ex: 0xdef1234....")
 	sendCastCmd.Flags().StringP("privkey", "", "", "Application private key. Ex: 0xabc1234....")
+	sendCastCmd.Flags().StringP("reply-to", "", "", "Reply to a cast. The expected format is @fid/0xhash")
+	sendCastCmd.Flags().BoolP("prepare", "", false, "Prepare the Message object and print it, but don't send it")
 }
