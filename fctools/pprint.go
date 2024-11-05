@@ -108,12 +108,12 @@ func FormatCast(msg *pb.Message, padding int, showInReply bool, highlight string
 	if len(body.Embeds) > 0 {
 		out += "\n----"
 	}
-	for _, embed := range body.Embeds {
+	for i, embed := range body.Embeds {
 		switch embed.GetEmbed().(type) {
 		case *pb.Embed_CastId:
-			out += "\n* " + FormatCastId(embed.GetCastId().Fid, embed.GetCastId().Hash, highlight)
+			out += "\n[" + strconv.Itoa(i+1) + "] " + FormatCastId(embed.GetCastId().Fid, embed.GetCastId().Hash, highlight)
 		case *pb.Embed_Url:
-			out += "\n* " + _print_url(embed.GetUrl())
+			out += "\n[" + strconv.Itoa(i+1) + "] " + _print_url(embed.GetUrl())
 		}
 	}
 
