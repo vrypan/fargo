@@ -98,6 +98,9 @@ func load() error {
 			panic(err)
 		}
 	}
+	if len(b) == 0 {
+		return nil
+	}
 	if err = json.Unmarshal(b, &kv_store); err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -70,57 +71,61 @@ func runSendCast(cmd *cobra.Command, args []string) {
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
 
-	text := args[0]
-	castText, mentionsPositions, mentions, embeds := fctools.ProcessCastBody(text)
-	if len(embeds) > 2 {
-		embeds = embeds[0:2]
-	}
-
-	messageBody := &pb.CastAddBody{
-		Mentions:          mentions,
-		MentionsPositions: mentionsPositions,
-		//Parent:            nil,
-		Text:   castText,
-		Type:   0,
-		Embeds: embeds,
-	}
-
-	if replyToFlag != "" {
-		parentFid, parentHashString := ParseFcURI(replyToFlag)
-		parentHash := HashToBytes(parentHashString[0])
-		parentCast := &pb.CastAddBody_ParentCastId{ParentCastId: &pb.CastId{Fid: parentFid, Hash: parentHash}}
-		messageBody.Parent = parentCast
-	}
-
-	messageData := &pb.MessageData{
-		Type:      pb.MessageType(pb.MessageType_value["MESSAGE_TYPE_CAST_ADD"]),
-		Fid:       fid,
-		Timestamp: uint32(time.Now().Unix() - fctools.FARCASTER_EPOCH),
-		Network:   pb.FarcasterNetwork(pb.FarcasterNetwork_value["FARCASTER_NETWORK_MAINNET"]),
-		Body: &pb.MessageData_CastAddBody{
-			CastAddBody: messageBody,
-		},
-	}
-
-	if prepareFlag {
-		jsonData, err := fctools.Marshal(
-			messageData, fctools.MarshalOptions{Bytes2Hash: true, Timestamp2Date: false},
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(string(jsonData))
-		return
-	}
-	msg, err := hub.SubmitMessageData(
-		messageData,
-		privateKey,
-		publicKey,
+	more := args[0]
+	var (
+		castText          string
+		mentionsPositions []uint32
+		mentions          []uint64
+		embeds            []*pb.Embed
 	)
-	if err != nil {
-		log.Fatalf("Error submitting message: %v", err)
+	for { // Cast storm!!!
+		castText, mentionsPositions, mentions, embeds, more = fctools.ProcessCastBody(more)
+		if len(embeds) > 2 {
+			embeds = embeds[0:2]
+		}
+		messageBody := &pb.CastAddBody{
+			Mentions:          mentions,
+			MentionsPositions: mentionsPositions,
+			Text:              castText,
+			Type:              0,
+			Embeds:            embeds,
+		}
+		if replyToFlag != "" {
+			parentFid, parentHashString := ParseFcURI(replyToFlag)
+			parentHash := HashToBytes(parentHashString[0])
+			parentCast := &pb.CastAddBody_ParentCastId{ParentCastId: &pb.CastId{Fid: parentFid, Hash: parentHash}}
+			messageBody.Parent = parentCast
+		}
+		messageData := &pb.MessageData{
+			Type:      pb.MessageType(pb.MessageType_value["MESSAGE_TYPE_CAST_ADD"]),
+			Fid:       fid,
+			Timestamp: uint32(time.Now().Unix() - fctools.FARCASTER_EPOCH),
+			Network:   pb.FarcasterNetwork(pb.FarcasterNetwork_value["FARCASTER_NETWORK_MAINNET"]),
+			Body: &pb.MessageData_CastAddBody{
+				CastAddBody: messageBody,
+			},
+		}
+		message := fctools.CreateMessage(messageData, privateKey, publicKey)
+		if prepareFlag {
+			jsonData, err := fctools.Marshal(
+				message, fctools.MarshalOptions{Bytes2Hash: true, Timestamp2Date: false},
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(string(jsonData))
+		} else {
+			msg, err := hub.SubmitMessage(message)
+			if err != nil {
+				log.Fatalf("Error submitting message: %v", err)
+			}
+			fmt.Printf("Sent: %s\n", fctools.FormatCastId(msg.Data.Fid, msg.Hash, ""))
+		}
+		replyToFlag = "@" + strconv.FormatInt(int64(fid), 10) + "/" + "0x" + hex.EncodeToString(message.Hash)
+		if more == "" {
+			break
+		}
 	}
-	fmt.Printf("Sent: %s\n", fctools.FormatCastId(msg.Data.Fid, msg.Hash, ""))
 }
 
 func init() {

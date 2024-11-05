@@ -1,14 +1,17 @@
 package fctools
 
 import (
+	"crypto/ed25519"
 	"regexp"
 	"strconv"
 	"strings"
 
 	pb "github.com/vrypan/fargo/farcaster"
+	"github.com/zeebo/blake3"
+	"google.golang.org/protobuf/proto"
 )
 
-func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed) {
+func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, string) {
 	var mentionPositions []uint32
 	var mentions []uint64
 	var embeds []*pb.Embed
@@ -21,37 +24,61 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed) {
 	var embedCount int
 
 	lines := strings.Split(text, "\n")
-	for _, line := range lines {
+	for lIdx, line := range lines {
 		words := strings.Fields(line)
-		for _, word := range words {
-			if matched := fnameRe.FindStringSubmatch(word); matched != nil {
-				fid, err := GetFidByFname(matched[1] + matched[2])
-				if err == nil {
-					mentionPositions = append(mentionPositions, uint32(currentIndex))
-					mentions = append(mentions, fid)
-					// Remove the @fname mention from result text
-					resultText += " " + matched[4]
-					offset += len(matched[4]) + 1
+		for wIdx, word := range words {
+			switch {
+			case fnameRe.MatchString(word):
+				if matched := fnameRe.FindStringSubmatch(word); matched != nil {
+					if fid, err := GetFidByFname(matched[1] + matched[2]); err == nil {
+						if len(resultText+" "+matched[4]) > 310 {
+							more := word
+							for _, w := range words[wIdx+1:] {
+								more += " " + w
+							}
+							for _, l := range lines[lIdx+1:] {
+								more += "\n" + l
+							}
+							return resultText, mentionPositions, mentions, embeds, more
+						}
+						mentionPositions = append(mentionPositions, uint32(currentIndex))
+						mentions = append(mentions, fid)
+						offset += len(matched[4]) + 1
+					}
 				}
-			} else if matched := urlRe.FindStringSubmatch(word); matched != nil {
-				embeds = append(embeds, &pb.Embed{
-					Embed: &pb.Embed_Url{Url: matched[1]},
-				})
-				if resultText != "" {
-					resultText += " "
-				}
-				resultText += "[" + strconv.Itoa(embedCount+1) + "]"
-				offset += 4
-				embedCount++
-				/*
-
+			case urlRe.MatchString(word):
+				if matched := urlRe.FindStringSubmatch(word); matched != nil {
+					if len(resultText+"["+strconv.Itoa(embedCount+1)+"]") > 310 {
+						more := word
+						for _, w := range words[wIdx+1:] {
+							more += " " + w
+						}
+						for _, l := range lines[lIdx+1:] {
+							more += "\n" + l
+						}
+						return resultText, mentionPositions, mentions, embeds, more
+					}
+					embeds = append(embeds, &pb.Embed{
+						Embed: &pb.Embed_Url{Url: matched[1]},
+					})
 					if resultText != "" {
 						resultText += " "
 					}
-					resultText += word
-					offset += len(word) + 1
-				*/
-			} else {
+					resultText += "[" + strconv.Itoa(embedCount+1) + "]"
+					offset += 4
+					embedCount++
+				}
+			default:
+				if len(resultText+word) > 310 {
+					more := word
+					for _, w := range words[wIdx+1:] {
+						more += " " + w
+					}
+					for _, l := range lines[lIdx+1:] {
+						more += "\n" + l
+					}
+					return resultText, mentionPositions, mentions, embeds, more
+				}
 				if resultText != "" {
 					resultText += " "
 				}
@@ -60,9 +87,31 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed) {
 			}
 			currentIndex = offset
 		}
-		// Preserve newline at the end of each line
 		resultText += "\n"
 		offset++
 	}
-	return resultText, mentionPositions, mentions, embeds
+	return resultText, mentionPositions, mentions, embeds, ""
+}
+
+func CreateMessage(messageData *pb.MessageData, signerPrivate []byte, signerPublic []byte) *pb.Message {
+	hash_scheme := pb.HashScheme(pb.HashScheme_value["HASH_SCHEME_BLAKE3"])
+	signature_scheme := pb.SignatureScheme(pb.SignatureScheme_value["SIGNATURE_SCHEME_ED25519"])
+	data_bytes, _ := proto.Marshal(messageData)
+	signerPublic_ := append(signerPrivate, signerPublic...) // required by ed25519 Go implementation
+
+	hasher := blake3.New()
+	hasher.Write(data_bytes)
+	hash := hasher.Sum(nil)[0:20]
+
+	signature := ed25519.Sign(signerPublic_, hash)
+
+	return &pb.Message{
+		Data:            messageData,
+		Hash:            hash,
+		HashScheme:      hash_scheme,
+		Signature:       signature,
+		SignatureScheme: signature_scheme,
+		Signer:          signerPublic,
+		DataBytes:       data_bytes,
+	}
 }

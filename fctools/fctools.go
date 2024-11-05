@@ -92,6 +92,11 @@ func (hub FarcasterHub) SubmitMessageData(messageData *pb.MessageData, signerPri
 	return msg, err
 }
 
+func (hub FarcasterHub) SubmitMessage(message *pb.Message) (*pb.Message, error) {
+	msg, err := hub.client.SubmitMessage(hub.ctx, message)
+	return msg, err
+}
+
 func (hub FarcasterHub) GetUserData(fid uint64, user_data_type string, tojson bool) (string, error) {
 	_udt := pb.UserDataType(pb.UserDataType_value[user_data_type])
 	msg, err := hub.client.GetUserData(hub.ctx, &pb.UserDataRequest{Fid: fid, UserDataType: _udt})
