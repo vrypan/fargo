@@ -49,6 +49,7 @@ func _print_fid(fid uint64) string {
 		defer hub.Close()
 		fname, err = hub.GetUserData(fid, "USER_DATA_TYPE_USERNAME", false)
 		if err == nil {
+			ldb.Open()
 			ldb.Set("FidName:"+fid_s, fname)
 		}
 	}
