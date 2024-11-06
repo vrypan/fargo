@@ -31,7 +31,7 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 			case fnameRe.MatchString(word):
 				if matched := fnameRe.FindStringSubmatch(word); matched != nil {
 					if fid, err := GetFidByFname(matched[1] + matched[2]); err == nil {
-						if len(resultText+" "+matched[4]) > 310 {
+						if len(resultText+" "+matched[4]) > 1024 {
 							more := word
 							for _, w := range words[wIdx+1:] {
 								more += " " + w
@@ -48,7 +48,7 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 				}
 			case urlRe.MatchString(word):
 				if matched := urlRe.FindStringSubmatch(word); matched != nil {
-					if len(resultText+"["+strconv.Itoa(embedCount+1)+"]") > 310 {
+					if len(resultText+"["+strconv.Itoa(embedCount+1)+"]") > 1024 {
 						more := word
 						for _, w := range words[wIdx+1:] {
 							more += " " + w
@@ -62,14 +62,15 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 						Embed: &pb.Embed_Url{Url: matched[1]},
 					})
 					if resultText != "" {
-						resultText += " "
+						resultText += " " + "[" + strconv.Itoa(embedCount+1) + "]"
+					} else {
+						resultText += "[" + strconv.Itoa(embedCount+1) + "]"
 					}
-					resultText += "[" + strconv.Itoa(embedCount+1) + "]"
 					offset += 4
 					embedCount++
 				}
 			default:
-				if len(resultText+word) > 310 {
+				if len(resultText+" "+word) > 1024 {
 					more := word
 					for _, w := range words[wIdx+1:] {
 						more += " " + w
@@ -79,10 +80,11 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 					}
 					return resultText, mentionPositions, mentions, embeds, more
 				}
-				if resultText != "" {
-					resultText += " "
+				if resultText != "" && wIdx > 0 {
+					resultText += " " + word
+				} else {
+					resultText += word
 				}
-				resultText += word
 				offset += len(word) + 1
 			}
 			currentIndex = offset

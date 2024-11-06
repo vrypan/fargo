@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -29,6 +30,8 @@ func runSendCast(cmd *cobra.Command, args []string) {
 	var privateKey []byte
 	var publicKey []byte
 	var s string
+
+	var castMessageBodies []*pb.CastAddBody
 
 	s = config.GetString("cast.privkey")
 	if c, _ := cmd.Flags().GetString("privkey"); c != "" {
@@ -77,19 +80,33 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		mentionsPositions []uint32
 		mentions          []uint64
 		embeds            []*pb.Embed
+		castType          uint8
 	)
 	for { // Cast storm!!!
 		castText, mentionsPositions, mentions, embeds, more = fctools.ProcessCastBody(more)
+		castText = strings.TrimSpace(castText)
+		more = strings.TrimSpace(more)
 		if len(embeds) > 2 {
 			embeds = embeds[0:2]
+		}
+		if len(castText) <= 320 {
+			castType = 0
+		} else {
+			castType = 1
 		}
 		messageBody := &pb.CastAddBody{
 			Mentions:          mentions,
 			MentionsPositions: mentionsPositions,
 			Text:              castText,
-			Type:              0,
+			Type:              pb.CastType(castType),
 			Embeds:            embeds,
 		}
+		castMessageBodies = append(castMessageBodies, messageBody)
+		if more == "" {
+			break
+		}
+	}
+	for _, messageBody := range castMessageBodies {
 		if replyToFlag != "" {
 			parentFid, parentHashString := ParseFcURI(replyToFlag)
 			parentHash := HashToBytes(parentHashString[0])
@@ -122,9 +139,6 @@ func runSendCast(cmd *cobra.Command, args []string) {
 			fmt.Printf("Sent: %s\n", fctools.FormatCastId(msg.Data.Fid, msg.Hash, ""))
 		}
 		replyToFlag = "@" + strconv.FormatInt(int64(fid), 10) + "/" + "0x" + hex.EncodeToString(message.Hash)
-		if more == "" {
-			break
-		}
 	}
 }
 
