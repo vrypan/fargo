@@ -6,13 +6,12 @@ import (
 	"errors"
 	"io"
 	"os"
-	"os/user"
 	"path/filepath"
+
+	"github.com/vrypan/fargo/config"
 )
 
 var db_path = ""
-
-const dot_dir = ".fargo"
 
 type db_value struct {
 	Idx uint64
@@ -28,23 +27,10 @@ type _kv_store struct {
 
 var kv_store = _kv_store{Kv: make(map[string]db_value)}
 
-var ERR_NOT_FOUND = errors.New("Not Found")
-var ERR_NOT_STORED = errors.New("Not Stored")
-
-func createDotDir() (string, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-	dotDir := filepath.Join(usr.HomeDir, dot_dir)
-	if _, err := os.Stat(dotDir); os.IsNotExist(err) {
-		err = os.Mkdir(dotDir, 0755)
-		if err != nil {
-			return "", err
-		}
-	}
-	return dotDir, nil
-}
+var (
+	ERR_NOT_FOUND  = errors.New("Not Found")
+	ERR_NOT_STORED = errors.New("Not Stored")
+)
 
 func Set(k string, v string) error {
 	if db_v, exists := kv_store.Kv[k]; exists {
@@ -80,11 +66,11 @@ func save() error {
 
 func load() error {
 	if db_path == "" {
-		if dotDir, err := createDotDir(); err != nil {
+		configDir, err := config.ConfigDir()
+		if err != nil {
 			return err
-		} else {
-			db_path = filepath.Join(dotDir, "local.db")
 		}
+		db_path = filepath.Join(configDir, "local.db")
 	}
 
 	b, err := os.ReadFile(db_path)
