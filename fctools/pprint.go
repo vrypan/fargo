@@ -14,10 +14,9 @@ import (
 
 func addPadding(s string, padding int) string {
 	padding_s := strings.Repeat(" ", padding)
-	s = strings.TrimSpace(s)
-	lines := strings.Split(s, "\n")
-	for i := range lines {
-		lines[i] = padding_s + lines[i]
+	lines := strings.Split(strings.TrimSpace(s), "\n")
+	for i, line := range lines {
+		lines[i] = padding_s + line
 	}
 	return strings.Join(lines, "\n")
 }
@@ -25,21 +24,22 @@ func addPadding(s string, padding int) string {
 func GetFidByFname(fname string) (uint64, error) {
 	ldb.Open()
 	defer ldb.Close()
-	var fid uint64
 
 	fid_s, err := ldb.Get("FnameFid:" + fname)
-	if err == ldb.ERR_NOT_FOUND {
+	if err == nil {
+		return strconv.ParseUint(fid_s, 10, 64)
+	} else if err == ldb.ERR_NOT_FOUND {
 		hub := NewFarcasterHub()
 		defer hub.Close()
-		fid, err = hub.GetFidByUsername(fname)
+
+		fid, err := hub.GetFidByUsername(fname)
 		if err == nil {
 			ldb.Set("FnameFid:"+fname, strconv.FormatUint(fid, 10))
 		}
-		return fid, nil
-	} else {
-		fid, _ = strconv.ParseUint(fid_s, 10, 64)
-		return fid, nil
+		return fid, err
 	}
+
+	return 0, err
 }
 func _print_fid(fid uint64) string {
 	fid_s := strconv.FormatUint(fid, 10)
@@ -47,21 +47,21 @@ func _print_fid(fid uint64) string {
 	if err == ldb.ERR_NOT_FOUND {
 		hub := NewFarcasterHub()
 		defer hub.Close()
-		fname, err = hub.GetUserData(fid, "USER_DATA_TYPE_USERNAME", false)
-		if err == nil {
+		if fname, err = hub.GetUserData(fid, "USER_DATA_TYPE_USERNAME", false); err == nil {
 			ldb.Open()
+			defer ldb.Close() // Added defer to ensure the database closes properly
 			ldb.Set("FidName:"+fid_s, fname)
 		}
 	}
-	if len(fname) > 0 {
+	if fname != "" {
 		return coloring.Magenta("@" + fname)
-	} else {
-		return coloring.Magenta("@" + fid_s)
 	}
+	return coloring.Magenta("@" + fid_s)
 }
 func _print_timestamp(ts uint32) string {
-	ret := "[" + time.Unix(int64(ts)+FARCASTER_EPOCH, 0).Format("2006-01-02 15:04") + "]"
-	return coloring.For(ret).Color(8).String()
+	timestamp := time.Unix(int64(ts)+FARCASTER_EPOCH, 0)
+	formattedTime := timestamp.Format("2006-01-02 15:04")
+	return coloring.For("[" + formattedTime + "]").Color(8).String()
 }
 func _print_url(s string) string {
 	// pp := color.New(color.FgBlue).Add(color.Underline).SprintFunc()
@@ -69,15 +69,13 @@ func _print_url(s string) string {
 }
 
 func FormatCastId(fid uint64, hash []byte, highlight string) string {
-	var out string = ""
 	hash_s := "0x" + hex.EncodeToString(hash)
-	out += _print_fid(fid)
+	out := _print_fid(fid)
+	colorFunc := coloring.For("/" + hash_s).Color(8).String
 	if hash_s == highlight {
-		out += coloring.For("/" + hash_s).Red().String()
-	} else {
-		out += coloring.For("/" + hash_s).Color(8).String()
+		colorFunc = coloring.For("/" + hash_s).Red().String
 	}
-	return out
+	return out + colorFunc()
 }
 
 func FormatCast(msg *pb.Message, padding int, showInReply bool, highlight string, grep string) string {
@@ -150,11 +148,12 @@ func PrintCastsByFid(fid uint64, count uint32, grep string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var out string = ""
+
+	var builder strings.Builder
 	for _, m := range casts {
-		out += FormatCast(m, 0, true, "", grep)
+		builder.WriteString(FormatCast(m, 0, true, "", grep))
 	}
-	return out, nil
+	return builder.String(), nil
 }
 
 func PrintCast(fid uint64, hash string, expand bool, grep string) string {
@@ -171,29 +170,28 @@ func PrintCast(fid uint64, hash string, expand bool, grep string) string {
 }
 
 func _print_cast(hub *FarcasterHub, fid uint64, hash []byte, expand bool, padding int, highlight string, grep string) string {
-	cast, e := hub.GetCast(fid, hash)
-	if e != nil {
-		panic(e)
+	cast, err := hub.GetCast(fid, hash)
+	if err != nil {
+		panic(err)
 	}
 
-	cast_body := pb.CastAddBody(*cast.Data.GetCastAddBody())
+	castBody := pb.CastAddBody(*cast.Data.GetCastAddBody())
 
-	if cast_body.GetParentCastId() != nil && expand && padding == 0 {
-		return _print_cast(hub, cast_body.GetParentCastId().Fid, cast_body.GetParentCastId().Hash, true, 0, highlight, grep)
+	// If there's a parent cast and we're expanding from the root
+	if castBody.GetParentCastId() != nil && expand && padding == 0 {
+		return _print_cast(hub, castBody.GetParentCastId().Fid, castBody.GetParentCastId().Hash, expand, padding, highlight, grep)
 	}
 
-	showInReply := false
-	if padding == 0 {
-		showInReply = true
-	}
+	showInReply := padding == 0
 	out := FormatCast(cast, padding, showInReply, highlight, grep)
+
 	if expand {
-		casts, err := hub.GetCastReplies(cast.Data.Fid, cast.Hash)
-		if err == nil {
-			for _, c := range casts.Messages {
-				out += _print_cast(hub, c.Data.Fid, c.Hash, true, padding+4, highlight, grep)
+		if casts, err := hub.GetCastReplies(cast.Data.Fid, cast.Hash); err == nil {
+			for _, reply := range casts.Messages {
+				out += _print_cast(hub, reply.Data.Fid, reply.Hash, true, padding+4, highlight, grep)
 			}
 		}
 	}
+
 	return out
 }

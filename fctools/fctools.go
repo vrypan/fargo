@@ -67,29 +67,30 @@ func (hub FarcasterHub) HubInfo() ([]byte, error) {
 	return b, err
 }
 
-func (hub FarcasterHub) SubmitMessageData(messageData *pb.MessageData, signerPrivate []byte, signerPublic []byte) (*pb.Message, error) {
-	hash_scheme := pb.HashScheme(pb.HashScheme_value["HASH_SCHEME_BLAKE3"])
-	signature_scheme := pb.SignatureScheme(pb.SignatureScheme_value["SIGNATURE_SCHEME_ED25519"])
-	data_bytes, err := proto.Marshal(messageData)
-	signerPublic_ := append(signerPrivate, signerPublic...) // required by ed25519 Go implementation
+func (hub FarcasterHub) SubmitMessageData(messageData *pb.MessageData, signerPrivate, signerPublic []byte) (*pb.Message, error) {
+	const hashLen = 20
 
-	hasher := blake3.New()
-	hasher.Write(data_bytes)
-	hash := hasher.Sum(nil)[0:20]
+	dataBytes, err := proto.Marshal(messageData)
+	if err != nil {
+		return nil, err
+	}
 
-	signature := ed25519.Sign(signerPublic_, hash)
+	fullHash := blake3.Sum256(dataBytes)
+	hash := fullHash[:hashLen]
+
+	signature := ed25519.Sign(append(signerPrivate, signerPublic...), hash)
 
 	message := pb.Message{
 		Data:            messageData,
 		Hash:            hash,
-		HashScheme:      hash_scheme,
+		HashScheme:      pb.HashScheme_HASH_SCHEME_BLAKE3,
 		Signature:       signature,
-		SignatureScheme: signature_scheme,
+		SignatureScheme: pb.SignatureScheme_SIGNATURE_SCHEME_ED25519,
 		Signer:          signerPublic,
-		DataBytes:       data_bytes,
+		DataBytes:       dataBytes,
 	}
-	msg, err := hub.client.SubmitMessage(hub.ctx, &message)
-	return msg, err
+
+	return hub.client.SubmitMessage(hub.ctx, &message)
 }
 
 func (hub FarcasterHub) SubmitMessage(message *pb.Message) (*pb.Message, error) {
@@ -106,10 +107,8 @@ func (hub FarcasterHub) GetUserData(fid uint64, user_data_type string, tojson bo
 	if tojson {
 		b, err := json.Marshal(msg)
 		return string(b), err
-	} else {
-		ud := pb.UserDataBody(*msg.Data.GetUserDataBody())
-		return ud.Value, nil
 	}
+	return pb.UserDataBody(*msg.Data.GetUserDataBody()).Value, nil
 }
 
 func (hub FarcasterHub) GetUsernameProofsByFid(fid uint64) ([]string, error) {
@@ -117,9 +116,9 @@ func (hub FarcasterHub) GetUsernameProofsByFid(fid uint64) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var ret []string
-	for _, p := range msg.Proofs {
-		ret = append(ret, string(p.Name))
+	ret := make([]string, len(msg.Proofs))
+	for i, p := range msg.Proofs {
+		ret[i] = string(p.Name)
 	}
 	return ret, nil
 }
@@ -129,14 +128,12 @@ func (hub FarcasterHub) GetFidByUsername(username string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	fid := msg.Fid
-	return fid, nil
+	return msg.Fid, nil
 }
 
-func (hub FarcasterHub) GetCastsByFid(fid uint64, page_size uint32) ([]*pb.Message, error) {
-	var reverse bool = true
-	//var page_size uint32 = 10
-	msg, err := hub.client.GetCastsByFid(hub.ctx, &pb.FidRequest{Fid: fid, Reverse: &reverse, PageSize: &page_size})
+func (hub FarcasterHub) GetCastsByFid(fid uint64, pageSize uint32) ([]*pb.Message, error) {
+	reverse := true
+	msg, err := hub.client.GetCastsByFid(hub.ctx, &pb.FidRequest{Fid: fid, Reverse: &reverse, PageSize: &pageSize})
 	if err != nil {
 		return nil, err
 	}
@@ -144,16 +141,11 @@ func (hub FarcasterHub) GetCastsByFid(fid uint64, page_size uint32) ([]*pb.Messa
 }
 
 func (hub FarcasterHub) GetCast(fid uint64, hash []byte) (*pb.Message, error) {
-	msg, err := hub.client.GetCast(hub.ctx, &pb.CastId{Fid: fid, Hash: hash})
-	if err != nil {
-		return nil, err
-	}
-	return msg, nil
+	return hub.client.GetCast(hub.ctx, &pb.CastId{Fid: fid, Hash: hash})
 }
 
 func (hub FarcasterHub) GetCastReplies(fid uint64, hash []byte) (*pb.MessagesResponse, error) {
-	// GetCastsByParent(CastsByParentRequest) returns (MessagesResponse);
-	response, err := hub.client.GetCastsByParent(
+	return hub.client.GetCastsByParent(
 		hub.ctx,
 		&pb.CastsByParentRequest{
 			Parent: &pb.CastsByParentRequest_ParentCastId{
@@ -161,8 +153,4 @@ func (hub FarcasterHub) GetCastReplies(fid uint64, hash []byte) (*pb.MessagesRes
 			},
 		},
 	)
-	if err != nil {
-		return nil, err
-	}
-	return response, nil
 }
