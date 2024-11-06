@@ -48,8 +48,6 @@ func _print_fid(fid uint64) string {
 		hub := NewFarcasterHub()
 		defer hub.Close()
 		if fname, err = hub.GetUserData(fid, "USER_DATA_TYPE_USERNAME", false); err == nil {
-			ldb.Open()
-			defer ldb.Close() // Added defer to ensure the database closes properly
 			ldb.Set("FidName:"+fid_s, fname)
 		}
 	}

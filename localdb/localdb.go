@@ -1,35 +1,20 @@
 package localdb
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"io"
 	"os"
 	"os/user"
 	"path/filepath"
+
+	"github.com/dgraph-io/badger/v3"
 )
 
+var db *badger.DB
 var db_path = ""
 
 const dot_dir = ".fargo"
 
-type db_value struct {
-	Idx uint64
-	Val string
-}
-
-type _kv_store struct {
-	Max_h  uint64
-	Top    uint64
-	Bottom uint64
-	Kv     map[string]db_value
-}
-
-var kv_store = _kv_store{Kv: make(map[string]db_value)}
-
 var ERR_NOT_FOUND = errors.New("Not Found")
-var ERR_NOT_STORED = errors.New("Not Stored")
 
 func createDotDir() (string, error) {
 	usr, err := user.Current()
@@ -47,74 +32,45 @@ func createDotDir() (string, error) {
 }
 
 func Set(k string, v string) error {
-	if db_v, exists := kv_store.Kv[k]; exists {
-		kv_store.Kv[k] = db_value{Idx: db_v.Idx, Val: v}
-	} else {
-		kv_store.Top++
-		kv_store.Kv[k] = db_value{Idx: kv_store.Top, Val: v}
-	}
-	return nil
-}
-
-func Get(k string) (string, error) {
-	if db_v, exists := kv_store.Kv[k]; exists {
-		return db_v.Val, nil
-	}
-	return "", ERR_NOT_FOUND
-}
-
-func save() error {
-	f, err := os.Create(db_path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	b, err := json.Marshal(kv_store)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(f, bytes.NewReader(b))
+	err := db.Update(func(txn *badger.Txn) error {
+		return txn.Set([]byte(k), []byte(v))
+	})
 	return err
 }
 
-func load() error {
+func Get(k string) (string, error) {
+	var val string
+	err := db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(k))
+		if err != nil {
+			return ERR_NOT_FOUND
+		}
+		err = item.Value(func(v []byte) error {
+			val = string(v)
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	return val, nil
+}
+
+func Open() error {
 	if db_path == "" {
 		if dotDir, err := createDotDir(); err != nil {
 			return err
 		} else {
-			db_path = filepath.Join(dotDir, "local.db")
+			db_path = filepath.Join(dotDir, "local2.db")
 		}
 	}
 
-	b, err := os.ReadFile(db_path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	if len(b) == 0 {
-		return nil
-	}
-
-	return json.Unmarshal(b, &kv_store)
-}
-
-func Stats() (uint64, uint64, uint64) {
-	return kv_store.Max_h, kv_store.Top, kv_store.Bottom
-}
-
-func Open() error {
-	if kv_store.Kv == nil {
-		kv_store.Kv = make(map[string]db_value)
-		if err := load(); err != nil {
-			return err
-		}
-	}
-	return nil
+	var err error
+	db, err = badger.Open(badger.DefaultOptions(db_path).WithLoggingLevel(badger.ERROR))
+	return err
 }
 
 func Close() error {
-	return save()
+	return db.Close()
 }

@@ -9,12 +9,25 @@ require (
 )
 
 require (
+	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/go-color-term/go-color-term v0.4.0
 	github.com/hashicorp/go-getter v1.7.6
 	github.com/muesli/reflow v0.3.0
 	github.com/spf13/viper v1.19.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
+)
+
+require (
+	github.com/cespare/xxhash v1.1.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/dgraph-io/ristretto v0.1.1 // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/glog v1.2.2 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/flatbuffers v1.12.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 )
 
 require (

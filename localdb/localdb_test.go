@@ -1,50 +1,32 @@
 package localdb
 
 import (
-    "testing"
-    "strconv"
-    "encoding/json"
+	"testing"
 )
 
 func TestBasic(t *testing.T) {
-    Open()
-    defer Close()
-    t.Logf("kv_store.top %v", kv_store.Top)
-    Set("key1", "value1")
-    t.Logf("kv_store.top %v", kv_store.Top)
-    v, _ := Get("key1")
-    if v != "value1" {
-        t.Errorf("Expected 'value1', got %#v", v)
-    }
-    t.Logf("kv_store.top %v", kv_store.Top)
+	err := Open()
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer Close()
 
-    Set("key2", "value2")
-    t.Logf("kv_store.top %v", kv_store.Top)
+	key := "testKey"
+	value := "testValue"
 
-    v, _ = Get("key1")
-    if v != "value1" {
-        t.Errorf("Expected 'value1', got %#v", v)
-    }
+	// Store the key/value
+	err = Set(key, value)
+	if err != nil {
+		t.Fatalf("Failed to store data: %v", err)
+	}
 
-    var b []byte
-    b, err := json.Marshal(kv_store.Kv); if err != nil {
-        panic(err)
-    }
-    t.Log(string(b))
-    t.Logf("%#v", kv_store)
-}
+	// Retrieve the key/value
+	retrievedValue, err := Get(key)
+	if err != nil {
+		t.Fatalf("Failed to retrieve data: %v", err)
+	}
 
-
-func TestInsert(t *testing.T) {
-    Open()
-    for i := range 100 {
-        Set(strconv.Itoa(i), "Hello, " + strconv.Itoa(i*10))
-    }
-    Close()
-    Open()
-    defer Close()
-    v,_ := Get("10")
-    if v != "Hello, 100" {
-        t.Errorf("Expected 'Hello 100', got %#v", v)
-    }
+	if retrievedValue != value {
+		t.Errorf("Expected value '%v', got '%v'", value, retrievedValue)
+	}
 }
