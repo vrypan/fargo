@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"time"
 
 	"github.com/dgraph-io/badger/v3"
 )
@@ -42,9 +43,23 @@ func createDotDir() (string, error) {
 }
 
 func Set(k string, v []byte) error {
+	/*
 	err := db.Update(func(txn *badger.Txn) error {
-		return txn.Set([]byte(k), v)
+		return txn.Set([]byte(k), v).WithTTL(24 * time.Hour)
 	})
+	return err
+	*/
+	/*
+	err := db.Update(func(txn *badger.Txn) error {
+	  e := badger.NewEntry([]byte([]byte(k)), v).WithTTL(time.Hour)
+	  err := txn.SetEntry(e)
+	  return err
+	})
+	*/
+	err := db.Update(func(txn *badger.Txn) error {
+        e := badger.NewEntry([]byte(k), v).WithTTL(24 * time.Hour)
+        return txn.SetEntry(e)
+    })
 	return err
 }
 
