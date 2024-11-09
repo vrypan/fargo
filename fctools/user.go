@@ -65,7 +65,12 @@ func (u *User) FetchUserData(hub *FarcasterHub, types []string) *User {
 }
 
 func (u *User) Value(t string) string {
-	return u.UserData[t].Data.GetUserDataBody().GetValue()
+	if u.UserData[t] != nil {
+		return u.UserData[t].Data.GetUserDataBody().GetValue()
+	} else {
+		return ""
+	}
+
 }
 
 func (u *User) Json() ([]byte, error) {

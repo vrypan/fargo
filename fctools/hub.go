@@ -111,6 +111,9 @@ func (hub FarcasterHub) GetUserData(fid uint64, user_data_type string) (*pb.Mess
 }
 func (hub FarcasterHub) GetUserDataStr(fid uint64, user_data_type string) (string, error) {
 	message, err := hub.GetUserData(fid, user_data_type)
+	if err != nil {
+		return "", err
+	}
 	s := message.Data.GetUserDataBody().GetValue()
 	return string(s), err
 }

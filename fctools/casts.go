@@ -136,6 +136,7 @@ func (grp *CastGroup) collectFnames(hub *FarcasterHub) {
 		for _, mention := range msg.Message.GetData().GetCastAddBody().GetMentions() {
 			grp.Fnames[mention], _ = hub.PrxGetUserDataStr(mention, "USER_DATA_TYPE_USERNAME")
 		}
+
 		for _, embed := range msg.Message.GetData().GetCastAddBody().GetEmbeds() {
 			if cid := embed.GetCastId(); cid != nil {
 				grp.Fnames[cid.Fid], _ = hub.PrxGetUserDataStr(cid.Fid, "USER_DATA_TYPE_USERNAME")
@@ -146,6 +147,7 @@ func (grp *CastGroup) collectFnames(hub *FarcasterHub) {
 			p_cast_fname, _ := hub.PrxGetUserDataStr(p_cast_fid, "USER_DATA_TYPE_USERNAME")
 			grp.Fnames[p_cast_fid] = p_cast_fname
 		}
+
 	}
 }
 
