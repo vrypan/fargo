@@ -11,6 +11,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func GetFidByFname(fname string) (uint64, error) {
+	hub := NewFarcasterHub()
+	defer hub.Close()
+	return hub.PrxGetFidByUsername(fname)
+
+}
+
 func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, string) {
 	var (
 		mentionPositions []uint32
@@ -34,7 +41,7 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 				if matched := fnameRe.FindStringSubmatch(word); matched != nil {
 					if fid, err := GetFidByFname(matched[1] + matched[2]); err == nil {
 						if len(resultText+" "+matched[4]) > 1024 {
-							return formMoreText(word, words[wIdx+1:], lines[lIdx+1:]), mentionPositions, mentions, embeds, ""
+							return resultText, mentionPositions, mentions, embeds, fmtMoreText(word, words[wIdx+1:], lines[lIdx+1:])
 						}
 						mentionPositions = append(mentionPositions, uint32(currentIndex))
 						mentions = append(mentions, fid)
@@ -44,7 +51,7 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 			case urlRe.MatchString(word):
 				if matched := urlRe.FindStringSubmatch(word); matched != nil {
 					if len(resultText+"["+strconv.Itoa(embedCount+1)+"]") > 1024 {
-						return formMoreText(word, words[wIdx+1:], lines[lIdx+1:]), mentionPositions, mentions, embeds, ""
+						return resultText, mentionPositions, mentions, embeds, fmtMoreText(word, words[wIdx+1:], lines[lIdx+1:])
 					}
 					embeds = append(embeds, &pb.Embed{
 						Embed: &pb.Embed_Url{Url: matched[1]},
@@ -58,7 +65,7 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 				}
 			default:
 				if len(resultText+" "+word) > 1024 {
-					return formMoreText(word, words[wIdx+1:], lines[lIdx+1:]), mentionPositions, mentions, embeds, ""
+					return resultText, mentionPositions, mentions, embeds, fmtMoreText(word, words[wIdx+1:], lines[lIdx+1:])
 				}
 				if resultText != "" && wIdx > 0 {
 					resultText += " "
@@ -74,7 +81,7 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 	return resultText, mentionPositions, mentions, embeds, ""
 }
 
-func formMoreText(word string, remainingWords []string, remainingLines []string) string {
+func fmtMoreText(word string, remainingWords []string, remainingLines []string) string {
 	more := word
 	for _, w := range remainingWords {
 		more += " " + w

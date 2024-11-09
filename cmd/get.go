@@ -1,5 +1,16 @@
 package cmd
 
+/*
+fargo
+	-X GET/POST
+	-r recursive
+	@username
+	@username/<hash>
+	@username/profile/<USER_DATA_TYPE>
+
+
+
+*/
 import (
 	"fmt"
 	"log"
@@ -26,54 +37,50 @@ var getCmd = &cobra.Command{
 
 func getRun(cmd *cobra.Command, args []string) {
 	config.Load()
-
-	fid, parts := parse_url(args)
+	user, parts := parse_url(args)
+	if user == nil {
+		log.Fatal("User not found")
+	}
 	expandFlag, _ := cmd.Flags().GetBool("expand")
 	countFlag := uint32(config.GetInt("get.count"))
 	if c, _ := cmd.Flags().GetInt("count"); c > 0 {
 		countFlag = uint32(c)
 	}
 
-	grepFlag, _ := cmd.Flags().GetString("grep")
+	//grepFlag, _ := cmd.Flags().GetString("grep")
 
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
 
-	if fid == 0 {
-		if b, e := hub.HubInfo(); e != nil {
-			log.Fatalf("Error! %v", e)
-		} else {
-			fmt.Println(string(b))
-		}
-		return
-	}
-
 	switch {
+	case len(parts) == 1 && parts[0] == "profile":
+		s := user.FetchUserData(hub, nil).String()
+		fmt.Println(s)
 	case len(parts) == 2 && parts[0] == "profile":
-		req := strings.Split(parts[1], ".")
-		json := len(req) > 1 && req[1] == "message"
-		if s, err := hub.GetUserData(fid, "USER_DATA_TYPE_"+strings.ToUpper(req[0]), json); err != nil {
-			log.Fatal(err)
-		} else {
-			fmt.Println(s)
-		}
+		t := strings.ToUpper("USER_DATA_TYPE_" + parts[1])
+		s := user.FetchUserData(hub, []string{t}).Value(t)
+		fmt.Println(s)
 	case len(parts) == 1 && parts[0] == "casts":
-		if s, err := fctools.PrintCastsByFid(fid, countFlag, grepFlag); err != nil {
-			log.Fatal(err)
-		} else {
-			fmt.Println(s)
-		}
+		// TBA: grepFlag
+		casts := fctools.NewCastGroup().FromFid(hub, user.Fid, countFlag)
+		s := casts.PprintList(nil, 0)
+		fmt.Println(s)
 	case len(parts) == 1 && strings.HasPrefix(parts[0], "0x"):
-		fmt.Println(fctools.PrintCast(fid, parts[0], expandFlag, grepFlag))
+		// TBA: grepFlag
+		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], expandFlag)
+		fmt.Println(casts.PprintThread(nil, 0))
 	case len(parts) >= 2 && strings.HasPrefix(parts[0], "0x") && parts[1] == "embed":
-		urls := fctools.GetCastUrls(fid, parts[0], false, "")
+		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], false)
+		embeds := casts.Messages[casts.Head].Message.Data.GetCastAddBody().GetEmbeds()
 		if len(parts) == 2 {
-			for _, u := range urls {
-				fmt.Println(u.Link)
+			for _, u := range embeds {
+				if u.GetUrl() != "" {
+					fmt.Println(u.GetUrl())
+				}
 			}
 		} else if len(parts) == 3 {
-			if idx, err := strconv.Atoi(parts[2]); err == nil && idx < len(urls) {
-				fmt.Println(urls[idx].Link)
+			if idx, err := strconv.Atoi(parts[2]); err == nil && idx < len(embeds) {
+				fmt.Println(embeds[idx].GetUrl())
 			} else {
 				log.Fatal("Not found")
 			}

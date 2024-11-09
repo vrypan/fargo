@@ -15,7 +15,7 @@ func TestBasic(t *testing.T) {
 	value := "testValue"
 
 	// Store the key/value
-	err = Set(key, value)
+	err = Set(key, []byte(value))
 	if err != nil {
 		t.Fatalf("Failed to store data: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestBasic(t *testing.T) {
 		t.Fatalf("Failed to retrieve data: %v", err)
 	}
 
-	if retrievedValue != value {
+	if string(retrievedValue) != value {
 		t.Errorf("Expected value '%v', got '%v'", value, retrievedValue)
 	}
 }

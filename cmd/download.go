@@ -6,12 +6,13 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/spf13/cobra"
 	"github.com/vrypan/fargo/config"
 	"github.com/vrypan/fargo/fctools"
-	"github.com/vrypan/fargo/fctools/embedurl"
+	"github.com/vrypan/fargo/urls"
 )
 
 var downloadCmd = &cobra.Command{
@@ -28,18 +29,27 @@ URLs you want to download.`,
 }
 
 func downloadRun(cmd *cobra.Command, args []string) {
-	fid, parts := parse_url(args)
+	config.Load()
+	user, parts := parse_url(args)
+	hub := fctools.NewFarcasterHub()
+	defer hub.Close()
+
+	if user == nil {
+		log.Fatal("User not found")
+	}
 	expandFlag, _ := cmd.Flags().GetBool("expand")
 	countFlag := uint32(config.GetInt("get.count"))
 	if c, _ := cmd.Flags().GetInt("count"); c > 0 {
 		countFlag = uint32(c)
 	}
 
-	grepFlag, _ := cmd.Flags().GetString("grep")
 	dirFlag, _ := cmd.Flags().GetString("dir")
-	mimetypeFlag, _ := cmd.Flags().GetString("mime-type")
 	dryrunFlag, _ := cmd.Flags().GetBool("dry-run")
+	mimetypeFlag, _ := cmd.Flags().GetString("mime-type")
 	skipdownloadedFlag, _ := cmd.Flags().GetBool("skip-downloaded")
+	/*
+		grepFlag, _ := cmd.Flags().GetString("grep")
+	*/
 
 	var download_dir string
 	if dirFlag == "" {
@@ -52,35 +62,47 @@ func downloadRun(cmd *cobra.Command, args []string) {
 		download_dir = "."
 	}
 	download_dir = normalizeLocalPath(download_dir)
-	fmt.Println(download_dir)
+	fmt.Println("Destination path: ", download_dir)
 
-	hub := fctools.NewFarcasterHub()
-	defer hub.Close()
+	switch {
+	case len(parts) == 1 && parts[0] == "profile":
+		s := user.FetchUserData(hub, nil).String()
+		fmt.Println(s)
 
-	processURLs := func(urls []embedurl.Url) {
-		for _, u := range urls {
-			m := u.UpdateContentType()
-			if mimetypeFlag == "" || (len(m) >= len(mimetypeFlag) && m[:len(mimetypeFlag)] == mimetypeFlag) {
-				if !dryrunFlag {
-					GetFile(u.Link, download_dir, u.Filename(), skipdownloadedFlag)
-				}
-				fmt.Printf("%s --> %s\n", u.Link, u.Filename())
+	case len(parts) == 2 && parts[0] == "profile":
+		s := user.FetchUserData(hub, []string{parts[1]}).Value(parts[1])
+		fmt.Println(s)
+
+	case len(parts) == 1 && parts[0] == "casts":
+		// TBA: grepFlag
+		casts := fctools.NewCastGroup().FromFid(hub, user.Fid, countFlag)
+		urlList := []urls.Url{}
+		for _, u := range casts.Links() {
+			urlList = append(urlList, *urls.NewUrl(u).UpdateExt().UpdateType())
+		}
+		processURLs(urlList, download_dir, mimetypeFlag, dryrunFlag, skipdownloadedFlag)
+	case len(parts) == 1 && strings.HasPrefix(parts[0], "0x"):
+		// TBA: grepFlag
+		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], expandFlag)
+		urlList := []urls.Url{}
+		for _, u := range casts.Links() {
+			urlList = append(urlList, *urls.NewUrl(u).UpdateExt().UpdateType())
+		}
+		processURLs(urlList, download_dir, mimetypeFlag, dryrunFlag, skipdownloadedFlag)
+	default:
+		log.Fatal("Not found")
+	}
+}
+
+func processURLs(urls []urls.Url, destination string, onlyType string, doNotDownload bool, doNotDownloadExsiting bool) {
+	for _, u := range urls {
+		if onlyType == "" || (len(u.ContentType) >= len(onlyType) && u.ContentType[:len(onlyType)] == onlyType) {
+			if !doNotDownload {
+				GetFile(u.Link, destination, u.Filename(), doNotDownloadExsiting)
 			}
+			fmt.Printf("%s --> %s\n", u.Link, u.Filename())
 		}
 	}
-
-	if len(parts) == 1 && parts[0] == "casts" {
-		fmt.Println("Count: ", countFlag)
-		urls := fctools.GetFidUrls(fid, countFlag, grepFlag)
-		processURLs(urls)
-		return
-	}
-	if len(parts) == 1 && parts[0][0:2] == "0x" {
-		urls := fctools.GetCastUrls(fid, parts[0], expandFlag, grepFlag)
-		processURLs(urls)
-		return
-	}
-	log.Fatal("Not found")
 }
 
 func normalizeLocalPath(p string) string {
@@ -124,5 +146,5 @@ func init() {
 	downloadCmd.Flags().StringP("mime-type", "", "", "Download embeds of mime/type")
 	downloadCmd.Flags().BoolP("dry-run", "", false, "Do not download the files, just print the URLs and local destination")
 	downloadCmd.Flags().BoolP("skip-downloaded", "", true, "If local file exists, do not download")
-	downloadCmd.Flags().StringP("dir", "", "", "Download directory. If not specified, the 'downloads.dir' config is used.")
+	downloadCmd.Flags().StringP("dir", "", "", "Destination directory. If not specified, the 'downloads.dir' config is used.")
 }

@@ -2,14 +2,18 @@ package fctools
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strconv"
 
 	//"time"
 	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
 
 	"github.com/vrypan/fargo/config"
 	pb "github.com/vrypan/fargo/farcaster"
+	db "github.com/vrypan/fargo/localdb"
 	"github.com/zeebo/blake3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -18,7 +22,6 @@ import (
 )
 
 const FARCASTER_EPOCH int64 = 1609459200
-const FMT_COLS = 80
 
 type FarcasterHub struct {
 	hubAddr    string
@@ -98,17 +101,42 @@ func (hub FarcasterHub) SubmitMessage(message *pb.Message) (*pb.Message, error) 
 	return msg, err
 }
 
-func (hub FarcasterHub) GetUserData(fid uint64, user_data_type string, tojson bool) (string, error) {
-	_udt := pb.UserDataType(pb.UserDataType_value[user_data_type])
-	msg, err := hub.client.GetUserData(hub.ctx, &pb.UserDataRequest{Fid: fid, UserDataType: _udt})
+func (hub FarcasterHub) GetUserData(fid uint64, user_data_type string) (*pb.Message, error) {
+	udt := pb.UserDataType(pb.UserDataType_value[user_data_type])
+	message, err := hub.client.GetUserData(hub.ctx, &pb.UserDataRequest{Fid: fid, UserDataType: udt})
 	if err != nil {
+		return nil, err
+	}
+	return message, nil
+}
+func (hub FarcasterHub) GetUserDataStr(fid uint64, user_data_type string) (string, error) {
+	message, err := hub.GetUserData(fid, user_data_type)
+	s := message.Data.GetUserDataBody().GetValue()
+	return string(s), err
+}
+func (hub FarcasterHub) PrxGetUserDataStr(fid uint64, user_data_type string) (string, error) {
+	db.AssertOpen()
+	val, err := db.Get("GetUserData/" + strconv.FormatUint(fid, 10) + "/" + user_data_type)
+	switch err {
+	case nil:
+		return string(val), nil
+	case db.ERR_NOT_FOUND:
+		s, err := hub.GetUserDataStr(fid, user_data_type)
+		if err != nil {
+			return "", err
+		}
+		err = db.Set(
+			"GetUserData/"+strconv.FormatUint(fid, 10)+"/"+user_data_type,
+			[]byte(s),
+		)
+		if err != nil {
+			log.Printf("Could not cache GetUserData result: %v", err)
+		}
+		return s, nil
+	default:
+		log.Fatal(err)
 		return "", err
 	}
-	if tojson {
-		b, err := json.Marshal(msg)
-		return string(b), err
-	}
-	return pb.UserDataBody(*msg.Data.GetUserDataBody()).Value, nil
 }
 
 func (hub FarcasterHub) GetUsernameProofsByFid(fid uint64) ([]string, error) {
@@ -122,13 +150,38 @@ func (hub FarcasterHub) GetUsernameProofsByFid(fid uint64) ([]string, error) {
 	}
 	return ret, nil
 }
-
 func (hub FarcasterHub) GetFidByUsername(username string) (uint64, error) {
-	msg, err := hub.client.GetUsernameProof(hub.ctx, &pb.UsernameProofRequest{Name: []byte(username)})
+	message, err := hub.client.GetUsernameProof(hub.ctx, &pb.UsernameProofRequest{Name: []byte(username)})
 	if err != nil {
+		return 0, fmt.Errorf("failed to get username proof: %w", err)
+	}
+	return message.Fid, nil
+}
+func (hub FarcasterHub) PrxGetFidByUsername(username string) (uint64, error) {
+	db.AssertOpen()
+	fidBytes, err := db.Get("GetFidByUsername/" + username)
+	switch err {
+	case db.ERR_NOT_FOUND:
+		fid, err := hub.GetFidByUsername(username)
+		if err != nil {
+			return 0, err
+		}
+		fidBytes = []byte(strconv.FormatUint(fid, 10))
+		err = db.Set("GetFidByUsername/"+username, fidBytes)
+		if err != nil {
+			log.Printf("Could not cache GetFidByUsername result: %v", err)
+		}
+		return fid, nil
+	case nil:
+		fid, err := strconv.ParseUint(string(fidBytes), 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return fid, nil
+	default:
+		log.Fatal(err)
 		return 0, err
 	}
-	return msg.Fid, nil
 }
 
 func (hub FarcasterHub) GetCastsByFid(fid uint64, pageSize uint32) ([]*pb.Message, error) {
@@ -142,6 +195,35 @@ func (hub FarcasterHub) GetCastsByFid(fid uint64, pageSize uint32) ([]*pb.Messag
 
 func (hub FarcasterHub) GetCast(fid uint64, hash []byte) (*pb.Message, error) {
 	return hub.client.GetCast(hub.ctx, &pb.CastId{Fid: fid, Hash: hash})
+}
+
+func (hub FarcasterHub) PrxGetCast(fid uint64, hash []byte) (*pb.Message, error) {
+	db.AssertOpen()
+	dbKey := "GetCast/" + hex.EncodeToString(hash)
+	messageBytes, err := db.Get(dbKey)
+	switch err {
+	case db.ERR_NOT_FOUND:
+		message, err := hub.GetCast(fid, hash)
+		if err != nil {
+			return nil, err
+		}
+		messageBytes, err := proto.Marshal(message)
+		err = db.Set(dbKey, messageBytes)
+		if err != nil {
+			log.Printf("Could not cache GetCast result: %v", err)
+		}
+		return message, nil
+	case nil:
+		var message pb.Message
+		err = proto.Unmarshal(messageBytes, &message)
+		if err != nil {
+			return nil, err
+		}
+		return &message, nil
+	default:
+		log.Fatal(err)
+		return nil, err
+	}
 }
 
 func (hub FarcasterHub) GetCastReplies(fid uint64, hash []byte) (*pb.MessagesResponse, error) {

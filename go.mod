@@ -10,7 +10,6 @@ require (
 
 require (
 	github.com/dgraph-io/badger/v3 v3.2103.5
-	github.com/go-color-term/go-color-term v0.4.0
 	github.com/hashicorp/go-getter v1.7.6
 	github.com/muesli/reflow v0.3.0
 	github.com/spf13/viper v1.19.0

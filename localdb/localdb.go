@@ -16,6 +16,16 @@ const dot_dir = ".fargo"
 
 var ERR_NOT_FOUND = errors.New("Not Found")
 
+func IsOpen() bool {
+	return db != nil
+}
+
+func AssertOpen() {
+	if db == nil {
+		panic("DB not open")
+	}
+}
+
 func createDotDir() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
@@ -31,28 +41,28 @@ func createDotDir() (string, error) {
 	return dotDir, nil
 }
 
-func Set(k string, v string) error {
+func Set(k string, v []byte) error {
 	err := db.Update(func(txn *badger.Txn) error {
-		return txn.Set([]byte(k), []byte(v))
+		return txn.Set([]byte(k), v)
 	})
 	return err
 }
 
-func Get(k string) (string, error) {
-	var val string
+func Get(k string) ([]byte, error) {
+	var val []byte
 	err := db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(k))
 		if err != nil {
 			return ERR_NOT_FOUND
 		}
 		err = item.Value(func(v []byte) error {
-			val = string(v)
+			val = v
 			return nil
 		})
 		return err
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	return val, nil
 }

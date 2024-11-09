@@ -108,9 +108,9 @@ func runSendCast(cmd *cobra.Command, args []string) {
 	}
 	for _, messageBody := range castMessageBodies {
 		if replyToFlag != "" {
-			parentFid, parentHashString := ParseFcURI(replyToFlag)
+			parent, parentHashString := ParseFcURI(replyToFlag)
 			parentHash := HashToBytes(parentHashString[0])
-			parentCast := &pb.CastAddBody_ParentCastId{ParentCastId: &pb.CastId{Fid: parentFid, Hash: parentHash}}
+			parentCast := &pb.CastAddBody_ParentCastId{ParentCastId: &pb.CastId{Fid: parent.Fid, Hash: parentHash}}
 			messageBody.Parent = parentCast
 		}
 		messageData := &pb.MessageData{
@@ -136,7 +136,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Fatalf("Error submitting message: %v", err)
 			}
-			fmt.Printf("Sent: %s\n", fctools.FormatCastId(msg.Data.Fid, msg.Hash, ""))
+			fmt.Printf("Sent: @%d/0x%s\n", msg.Data.Fid, hex.EncodeToString(msg.Hash))
 		}
 		replyToFlag = "@" + strconv.FormatInt(int64(fid), 10) + "/" + "0x" + hex.EncodeToString(message.Hash)
 	}

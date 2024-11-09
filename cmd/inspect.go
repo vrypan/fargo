@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -23,9 +22,9 @@ func inspectRun(cmd *cobra.Command, args []string) {
 		cmd.Help()
 		return
 	}
-	fid, parts := parse_url(args)
-	hexFlag, _ := cmd.Flags().GetBool("hex")
-	datesFlag, _ := cmd.Flags().GetBool("dates")
+	user, parts := parse_url(args)
+	// hexFlag, _ := cmd.Flags().GetBool("hex")
+	// datesFlag, _ := cmd.Flags().GetBool("dates")
 
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
@@ -34,21 +33,15 @@ func inspectRun(cmd *cobra.Command, args []string) {
 		log.Fatal("Not found")
 	}
 
-	hashBytes, err := hex.DecodeString(parts[0][2:])
-	if err != nil {
-		log.Fatal("Hash is not a hex number")
+	if user != nil {
+		log.Fatal("User not found")
 	}
-
-	msg, err := hub.GetCast(fid, hashBytes)
+	casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], false)
+	b, err := casts.JsonList()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	jsonData, err := fctools.Marshal(msg, fctools.MarshalOptions{Bytes2Hash: hexFlag, Timestamp2Date: datesFlag})
-	if err != nil {
-		log.Fatalf("Error converting message to JSON: %v", err)
-	}
-	fmt.Printf("%s\n", jsonData)
+	fmt.Printf("%s\n", string(b))
 }
 
 func init() {
