@@ -37,14 +37,14 @@ func downloadRun(cmd *cobra.Command, args []string) {
 	if user == nil {
 		log.Fatal("User not found")
 	}
-	expandFlag, _ := cmd.Flags().GetBool("expand")
+	expandFlag, _ := cmd.Flags().GetBool("recursive")
 	countFlag := uint32(config.GetInt("get.count"))
 	if c, _ := cmd.Flags().GetInt("count"); c > 0 {
 		countFlag = uint32(c)
 	}
 
 	dirFlag, _ := cmd.Flags().GetString("dir")
-	dryrunFlag, _ := cmd.Flags().GetBool("dry-run")
+	pretendFlag, _ := cmd.Flags().GetBool("pretend")
 	mimetypeFlag, _ := cmd.Flags().GetString("mime-type")
 	skipdownloadedFlag, _ := cmd.Flags().GetBool("skip-downloaded")
 	/*
@@ -80,7 +80,7 @@ func downloadRun(cmd *cobra.Command, args []string) {
 		for _, u := range casts.Links() {
 			urlList = append(urlList, *urls.NewUrl(u).UpdateExt().UpdateType())
 		}
-		processURLs(urlList, download_dir, mimetypeFlag, dryrunFlag, skipdownloadedFlag)
+		processURLs(urlList, download_dir, mimetypeFlag, pretendFlag, skipdownloadedFlag)
 	case len(parts) == 1 && strings.HasPrefix(parts[0], "0x"):
 		// TBA: grepFlag
 		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], expandFlag)
@@ -88,7 +88,7 @@ func downloadRun(cmd *cobra.Command, args []string) {
 		for _, u := range casts.Links() {
 			urlList = append(urlList, *urls.NewUrl(u).UpdateExt().UpdateType())
 		}
-		processURLs(urlList, download_dir, mimetypeFlag, dryrunFlag, skipdownloadedFlag)
+		processURLs(urlList, download_dir, mimetypeFlag, pretendFlag, skipdownloadedFlag)
 	default:
 		log.Fatal("Not found")
 	}
@@ -140,11 +140,11 @@ func GetFile(url string, dst_dir string, dst_file string, skipdownloadedFlag boo
 
 func init() {
 	rootCmd.AddCommand(downloadCmd)
-	downloadCmd.Flags().BoolP("expand", "e", false, "Expand threads")
+	downloadCmd.Flags().BoolP("recursive", "r", false, "Recursively get parent casts and replies")
 	downloadCmd.Flags().IntP("count", "c", 0, "Number of casts to show when getting @user/casts")
 	downloadCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
 	downloadCmd.Flags().StringP("mime-type", "", "", "Download embeds of mime/type")
-	downloadCmd.Flags().BoolP("dry-run", "", false, "Do not download the files, just print the URLs and local destination")
+	downloadCmd.Flags().BoolP("pretend", "p", false, "Do not download the files, just print the URLs and local destination")
 	downloadCmd.Flags().BoolP("skip-downloaded", "", true, "If local file exists, do not download")
 	downloadCmd.Flags().StringP("dir", "", "", "Destination directory. If not specified, the 'downloads.dir' config is used.")
 }

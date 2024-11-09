@@ -8,8 +8,6 @@ fargo
 	@username/<hash>
 	@username/profile/<USER_DATA_TYPE>
 
-
-
 */
 import (
 	"fmt"
@@ -42,7 +40,7 @@ func getRun(cmd *cobra.Command, args []string) {
 	if user == nil {
 		log.Fatal("User not found")
 	}
-	expandFlag, _ := cmd.Flags().GetBool("expand")
+	expandFlag, _ := cmd.Flags().GetBool("recursive")
 	countFlag := uint32(config.GetInt("get.count"))
 	if c, _ := cmd.Flags().GetInt("count"); c > 0 {
 		countFlag = uint32(c)
@@ -93,7 +91,7 @@ func getRun(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.AddCommand(getCmd)
-	getCmd.Flags().BoolP("expand", "e", false, "Expand threads")
+	getCmd.Flags().BoolP("recursive", "r", false, "Recursively get parent casts and replies")
 	getCmd.Flags().IntP("count", "c", 0, "Number of casts to show when getting @user/casts")
 	getCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
 }
