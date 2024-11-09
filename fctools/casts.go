@@ -153,26 +153,6 @@ func (grp *CastGroup) collectFnames(hub *FarcasterHub) {
 	}
 }
 
-func (grp *CastGroup) PprintThread(hash *Hash, padding int) string {
-	if hash == nil {
-		hash = &grp.Head
-	}
-	out := ""
-	cast := grp.Messages[*hash].Message
-	out += FormatCast(cast, grp.Fnames, padding, (padding == 0), "", "")
-	for _, reply := range grp.Messages[*hash].Replies {
-		out += grp.PprintThread(&reply, padding+4)
-	}
-	return out
-}
-func (grp *CastGroup) PprintList(hash *Hash, padding int) string {
-	out := ""
-	for _, cast := range grp.Messages {
-		out += FormatCast(cast.Message, grp.Fnames, padding, true, "", "") + "\n"
-	}
-	return out
-}
-
 func (grp *CastGroup) JsonList(hexHashes bool, realTimestamps bool) ([]byte, error) {
 	groupData := make([]interface{}, len(grp.Messages))
 	var jsonData interface{}

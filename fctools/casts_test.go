@@ -37,7 +37,6 @@ func Test_ThreadFromCast2(t *testing.T) {
 		t.Fatalf("Only %d casts in thread?", len(grp.Messages))
 	}
 	t.Logf("Total messages in thread: %d", len(grp.Messages))
-	t.Log("\n" + grp.PprintThread(nil, 0))
 }
 
 func Test_ThreadFromCast_No_Expand(t *testing.T) {
@@ -48,21 +47,6 @@ func Test_ThreadFromCast_No_Expand(t *testing.T) {
 		t.Fatalf("There are %d messages in group. Expected: 1.", len(grp.Messages))
 	}
 	t.Logf("Total messages in thread: %d", len(grp.Messages))
-	t.Log("\n" + grp.PprintThread(nil, 0))
-}
-
-func Test_ThreadFromCast_Chain(t *testing.T) {
-	hash, _ := hex.DecodeString("13d491c6583c9bac177e6f8d76791e7326def624")
-	castId := pb.CastId{Fid: 280, Hash: hash}
-	s := NewCastGroup().FromCast(nil, &castId, false).PprintThread(nil, 0)
-	t.Log("\n" + s)
-}
-
-func Test_ThreadFromFid(t *testing.T) {
-	grp := NewCastGroup().FromFid(nil, 280, 20)
-
-	s := grp.PprintList(nil, 0)
-	t.Log("\n" + s)
 }
 
 func Test_Json(t *testing.T) {

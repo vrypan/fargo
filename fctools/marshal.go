@@ -1,23 +1,24 @@
 package fctools
 
 import (
-	"time"
-	"encoding/json"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"time"
+
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
 type MarshalOptions struct {
-	Bytes2Hash bool
+	Bytes2Hash     bool
 	Timestamp2Date bool
 }
 
-func _marshal(msg proto.Message) ([]byte, error){
+func _marshal(msg proto.Message) ([]byte, error) {
 	options := protojson.MarshalOptions{
-		Indent:          "  ",  // Pretty-print with indentation
-		EmitUnpopulated: true,  // Include fields with zero values
+		Indent:          "  ", // Pretty-print with indentation
+		EmitUnpopulated: true, // Include fields with zero values
 	}
 	return options.Marshal(msg)
 }
@@ -31,9 +32,9 @@ func replaceHashFields(data interface{}, opts MarshalOptions) {
 				if err != nil {
 					panic("Field value is not base64")
 				}
-				value[k] = "0x"+hex.EncodeToString(bytes)
+				value[k] = "0x" + hex.EncodeToString(bytes)
 			} else if opts.Timestamp2Date && (k == "timestamp") {
-				value[k] = time.Unix( int64(v.(float64)) + FARCASTER_EPOCH, 0)
+				value[k] = time.Unix(int64(v.(float64))+FARCASTER_EPOCH, 0)
 			} else {
 				replaceHashFields(v, opts)
 			}
