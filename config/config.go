@@ -32,6 +32,7 @@ func Load() string { // Load config and return config file path
 		"cast.fid":     0,
 		"cast.privkey": "",
 		"cast.pubkey":  "",
+		"db.ttlhours":  24,
 	}
 	for key, value := range defaults {
 		viper.SetDefault(key, value)
