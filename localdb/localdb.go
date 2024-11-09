@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
+	"github.com/vrypan/fargo/config"
 )
 
 var db *badger.DB
 var db_path = ""
 
 const dot_dir = ".fargo"
-
-var ERR_NOT_FOUND = errors.New("Not Found")
 
 func IsOpen() bool {
 	return db != nil
@@ -42,24 +41,29 @@ func createDotDir() (string, error) {
 	return dotDir, nil
 }
 
+var (
+	ERR_NOT_FOUND  = errors.New("Not Found")
+	ERR_NOT_STORED = errors.New("Not Stored")
+)
+
 func Set(k string, v []byte) error {
 	/*
-	err := db.Update(func(txn *badger.Txn) error {
-		return txn.Set([]byte(k), v).WithTTL(24 * time.Hour)
-	})
-	return err
+		err := db.Update(func(txn *badger.Txn) error {
+			return txn.Set([]byte(k), v).WithTTL(24 * time.Hour)
+		})
+		return err
 	*/
 	/*
-	err := db.Update(func(txn *badger.Txn) error {
-	  e := badger.NewEntry([]byte([]byte(k)), v).WithTTL(time.Hour)
-	  err := txn.SetEntry(e)
-	  return err
-	})
+		err := db.Update(func(txn *badger.Txn) error {
+		  e := badger.NewEntry([]byte([]byte(k)), v).WithTTL(time.Hour)
+		  err := txn.SetEntry(e)
+		  return err
+		})
 	*/
 	err := db.Update(func(txn *badger.Txn) error {
-        e := badger.NewEntry([]byte(k), v).WithTTL(24 * time.Hour)
-        return txn.SetEntry(e)
-    })
+		e := badger.NewEntry([]byte(k), v).WithTTL(24 * time.Hour)
+		return txn.SetEntry(e)
+	})
 	return err
 }
 
@@ -84,11 +88,11 @@ func Get(k string) ([]byte, error) {
 
 func Open() error {
 	if db_path == "" {
-		if dotDir, err := createDotDir(); err != nil {
+		configDir, err := config.ConfigDir()
+		if err != nil {
 			return err
-		} else {
-			db_path = filepath.Join(dotDir, "local2.db")
 		}
+		db_path = filepath.Join(configDir, "local.db")
 	}
 
 	var err error
