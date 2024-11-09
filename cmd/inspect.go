@@ -33,8 +33,8 @@ func inspectRun(cmd *cobra.Command, args []string) {
 		log.Fatal("Not found")
 	}
 
-	if user != nil {
-		log.Fatal("User not found")
+	if user.Fid == 0 {
+		log.Fatal("User not found. ", user, parts)
 	}
 	casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], false)
 	b, err := casts.JsonList()
