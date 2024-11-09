@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vrypan/fargo/config"
 	"github.com/vrypan/fargo/fctools"
+	"github.com/vrypan/fargo/tui"
 )
 
 var getCmd = &cobra.Command{
@@ -63,12 +64,12 @@ func getRun(cmd *cobra.Command, args []string) {
 	case len(parts) == 1 && parts[0] == "casts":
 		// TBA: grepFlag
 		casts := fctools.NewCastGroup().FromFid(hub, user.Fid, countFlag)
-		s := casts.PprintList(nil, 0)
+		s := tui.PprintList(casts, nil, 0)
 		fmt.Println(s)
 	case len(parts) == 1 && strings.HasPrefix(parts[0], "0x"):
 		// TBA: grepFlag
 		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], expandFlag)
-		fmt.Println(casts.PprintThread(nil, 0))
+		fmt.Println(tui.PprintThread(casts, nil, 0))
 	case len(parts) >= 2 && strings.HasPrefix(parts[0], "0x") && parts[1] == "embed":
 		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], false)
 		embeds := casts.Messages[casts.Head].Message.Data.GetCastAddBody().GetEmbeds()

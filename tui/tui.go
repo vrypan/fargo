@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-color-term/go-color-term/coloring"
 	"github.com/muesli/reflow/wordwrap"
 	pb "github.com/vrypan/fargo/farcaster"
 	"github.com/vrypan/fargo/fctools"
@@ -21,13 +22,13 @@ type fidNames map[uint64]string
 func ppTimestamp(ts uint32) string {
 	timestamp := time.Unix(int64(ts)+FARCASTER_EPOCH, 0)
 	formattedTime := timestamp.Format("2006-01-02 15:04")
-	return "[" + formattedTime + "]"
+	return coloring.Faint("[" + formattedTime + "]")
 }
 func ppCastId(fname string, hash []byte) string {
-	return "@" + fname + "/" + "0x" + hex.EncodeToString(hash)
+	return coloring.Magenta("@"+fname) + coloring.Faint("/"+"0x"+hex.EncodeToString(hash))
 }
 func ppUrl(url string) string {
-	return url
+	return coloring.Green(url)
 }
 func addPadding(s string, padding int) string {
 	padding_s := strings.Repeat(" ", padding)
@@ -216,59 +217,55 @@ import (
 */
 
 func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInReply bool, highlight string, grep string) string {
-	var out strings.Builder
+	var out string
 
 	body := pb.CastAddBody(*msg.Data.GetCastAddBody())
 
 	var ptr uint32 = 0
 	for i, mention := range body.Mentions {
-		out.WriteString(body.Text[ptr:body.MentionsPositions[i]] + "@" + fnames[mention])
+		out += body.Text[ptr:body.MentionsPositions[i]] + "@" + fnames[mention]
 		ptr = body.MentionsPositions[i]
 	}
-	out.WriteString(body.Text[ptr:])
-	wrappedText := wordwrap.String(out.String(), 79)
-	out.Reset()
-	out.WriteString(wrappedText)
+	out += body.Text[ptr:]
+	out = wordwrap.String(out, 79)
 
 	if showInReply {
-		parent := body.GetParent()
-		switch parent := parent.(type) {
+		switch body.GetParent().(type) {
 		case *pb.CastAddBody_ParentCastId:
-			h := "0x" + hex.EncodeToString(parent.ParentCastId.Hash)
-			id := fnames[parent.ParentCastId.Fid]
-			out.WriteString("\n↳ In reply to @" + id + "/" + h + "\n\n")
+			h := "0x" + hex.EncodeToString(body.GetParentCastId().Hash)
+			id := fnames[body.GetParentCastId().Fid]
+			out = "↳ In reply to @" + id + "/" + h + "\n\n" + out
 		case *pb.CastAddBody_ParentUrl:
-			out.WriteString("\n↳ In reply to " + parent.ParentUrl + "\n\n")
+			out = "↳ In reply to " + body.GetParentUrl() + "\n\n" + out
 		}
 	}
 
-	out.WriteString(" " + ppTimestamp(msg.Data.Timestamp) + "\n")
-	out.WriteString(ppCastId(fnames[msg.Data.Fid], msg.Hash))
+	out = " " + ppTimestamp(msg.Data.Timestamp) + "\n" + out
+	out = ppCastId(fnames[msg.Data.Fid], msg.Hash) + out
 
 	if len(body.Embeds) > 0 {
-		out.WriteString("\n----")
+		out += "\n----"
 	}
 	for i, embed := range body.Embeds {
-		switch e := embed.GetEmbed().(type) {
+		switch embed.GetEmbed().(type) {
 		case *pb.Embed_CastId:
-			out.WriteString("\n[" + strconv.Itoa(i+1) + "] " + ppCastId(fnames[e.CastId.Fid], e.CastId.Hash))
+			out += "\n[" + strconv.Itoa(i+1) + "] " + ppCastId(fnames[embed.GetCastId().Fid], embed.GetCastId().Hash)
 		case *pb.Embed_Url:
-			out.WriteString("\n[" + strconv.Itoa(i+1) + "] " + ppUrl(e.Url))
+			out += "\n[" + strconv.Itoa(i+1) + "] " + ppUrl(embed.GetUrl())
 		}
 	}
 
-	var formattedOut strings.Builder
-	lines := strings.Split(out.String(), "\n")
-	for n, l := range lines {
+	var out2 string = ""
+	for n, l := range strings.Split(out, "\n") {
 		if n == 0 {
-			formattedOut.WriteString("┌─ " + l + "\n")
+			out2 = "┌─ " + l + "\n"
 		} else {
-			formattedOut.WriteString("│ " + l + "\n")
+			out2 += "│ " + l + "\n"
 		}
 	}
-	formattedOut.WriteString("└───\n")
+	out2 += "└───\n"
 
-	return addPadding(formattedOut.String(), padding) + "\n"
+	return addPadding(out2, padding) + "\n"
 }
 
 func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int) string {

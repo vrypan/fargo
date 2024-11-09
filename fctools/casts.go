@@ -10,25 +10,34 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type tCast struct {
+type Cast struct {
 	Message *pb.Message
 	Replies []Hash
 }
 
-func (c tCast) String() string {
+func (c Cast) String() string {
 	fid := strconv.FormatUint(c.Message.Data.Fid, 10)
 	hash := "0x" + hex.EncodeToString(c.Message.Hash)
 	return fid + "/" + hash
 }
+func (c Cast) Hash() string {
+	return "0x" + hex.EncodeToString(c.Message.Hash)
+}
+func (c Cast) Fid() string {
+	return strconv.FormatUint(c.Message.Data.Fid, 10)
+}
+func (c Cast) Text() string {
+	return c.Message.Data.GetCastAddBody().Text
+}
 
 type CastGroup struct {
 	Head     Hash
-	Messages map[Hash]*tCast
+	Messages map[Hash]*Cast
 	Fnames   map[uint64]string
 }
 
 func NewCastGroup() *CastGroup {
-	return &CastGroup{Messages: make(map[Hash]*tCast), Fnames: make(map[uint64]string)}
+	return &CastGroup{Messages: make(map[Hash]*Cast), Fnames: make(map[uint64]string)}
 }
 
 /*
@@ -52,7 +61,7 @@ func (grp *CastGroup) FromFid(hub *FarcasterHub, fid uint64, count uint32) *Cast
 	//var cast *pb.Message
 	for _, cast := range messages {
 		hash = Hash(cast.Hash[:])
-		grp.Messages[hash] = &tCast{Message: cast}
+		grp.Messages[hash] = &Cast{Message: cast}
 	}
 	grp.collectFnames(hub)
 	return grp
@@ -86,11 +95,11 @@ func (grp *CastGroup) FromCast(hub *FarcasterHub, castId *pb.CastId, expandTree 
 	if err != nil {
 		return grp
 	}
-	grp.Messages[Hash(cast.Hash)] = &tCast{Message: cast}
+	grp.Messages[Hash(cast.Hash)] = &Cast{Message: cast}
 	grp.Head = Hash(cast.Hash)
 	if expandTree {
 		for cast != nil {
-			grp.Messages[Hash(cast.Hash)] = &tCast{Message: cast}
+			grp.Messages[Hash(cast.Hash)] = &Cast{Message: cast}
 			parentCastId := cast.Data.GetCastAddBody().GetParentCastId()
 			if parentCastId == nil {
 				grp.Head = Hash(cast.Hash)
@@ -115,7 +124,7 @@ func (grp *CastGroup) expandReplies(hub *FarcasterHub, hash Hash) {
 	for _, r := range replies.Messages {
 		parent := grp.Messages[hash]
 		parent.Replies = append(parent.Replies, Hash(r.Hash))
-		grp.Messages[Hash(r.Hash)] = &tCast{Message: r}
+		grp.Messages[Hash(r.Hash)] = &Cast{Message: r}
 		grp.expandReplies(hub, Hash(r.Hash))
 	}
 }
@@ -126,6 +135,11 @@ func (grp *CastGroup) collectFnames(hub *FarcasterHub) {
 
 		for _, mention := range msg.Message.GetData().GetCastAddBody().GetMentions() {
 			grp.Fnames[mention], _ = hub.PrxGetUserDataStr(mention, "USER_DATA_TYPE_USERNAME")
+		}
+		for _, embed := range msg.Message.GetData().GetCastAddBody().GetEmbeds() {
+			if cid := embed.GetCastId(); cid != nil {
+				grp.Fnames[cid.Fid], _ = hub.PrxGetUserDataStr(cid.Fid, "USER_DATA_TYPE_USERNAME")
+			}
 		}
 		if msg.Message.GetData().GetCastAddBody().GetParentCastId() != nil {
 			p_cast_fid := msg.Message.GetData().GetCastAddBody().GetParentCastId().Fid
