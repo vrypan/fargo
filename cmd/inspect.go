@@ -23,8 +23,8 @@ func inspectRun(cmd *cobra.Command, args []string) {
 		return
 	}
 	user, parts := parse_url(args)
-	// hexFlag, _ := cmd.Flags().GetBool("hex")
-	// datesFlag, _ := cmd.Flags().GetBool("dates")
+	hexFlag, _ := cmd.Flags().GetBool("hex")
+	datesFlag, _ := cmd.Flags().GetBool("dates")
 
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
@@ -37,7 +37,7 @@ func inspectRun(cmd *cobra.Command, args []string) {
 		log.Fatal("User not found. ", user, parts)
 	}
 	casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], false)
-	b, err := casts.JsonList()
+	b, err := casts.JsonList(hexFlag, datesFlag)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -41,6 +41,9 @@ func getRun(cmd *cobra.Command, args []string) {
 		log.Fatal("User not found")
 	}
 	expandFlag, _ := cmd.Flags().GetBool("recursive")
+	jsonFlag, _ := cmd.Flags().GetBool("json")
+	jhexFlag, _ := cmd.Flags().GetBool("hex-hashes")
+	jdatesFlag, _ := cmd.Flags().GetBool("dates")
 	countFlag := uint32(config.GetInt("get.count"))
 	if c, _ := cmd.Flags().GetInt("count"); c > 0 {
 		countFlag = uint32(c)
@@ -62,12 +65,22 @@ func getRun(cmd *cobra.Command, args []string) {
 	case len(parts) == 1 && parts[0] == "casts":
 		// TBA: grepFlag
 		casts := fctools.NewCastGroup().FromFid(hub, user.Fid, countFlag)
-		s := tui.PprintList(casts, nil, 0)
-		fmt.Println(s)
+		if jsonFlag {
+			s, _ := casts.JsonList(jhexFlag, jdatesFlag)
+			fmt.Println(string(s))
+		} else {
+			s := tui.PprintList(casts, nil, 0)
+			fmt.Println(s)
+		}
 	case len(parts) == 1 && strings.HasPrefix(parts[0], "0x"):
 		// TBA: grepFlag
 		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], expandFlag)
-		fmt.Println(tui.PprintThread(casts, nil, 0))
+		if jsonFlag {
+			s, _ := casts.JsonThread(jhexFlag, jdatesFlag)
+			fmt.Println(string(s))
+		} else {
+			fmt.Println(tui.PprintThread(casts, nil, 0))
+		}
 	case len(parts) >= 2 && strings.HasPrefix(parts[0], "0x") && parts[1] == "embed":
 		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], false)
 		embeds := casts.Messages[casts.Head].Message.Data.GetCastAddBody().GetEmbeds()
@@ -94,4 +107,7 @@ func init() {
 	getCmd.Flags().BoolP("recursive", "r", false, "Recursively get parent casts and replies")
 	getCmd.Flags().IntP("count", "c", 0, "Number of casts to show when getting @user/casts")
 	getCmd.Flags().StringP("grep", "", "", "Only show casts containing a specific string")
+	getCmd.Flags().BoolP("json", "", false, "Generate a json object insteead of text")
+	getCmd.Flags().BoolP("hex-hashes", "", true, "Used with --json to show hashes in hex")
+	getCmd.Flags().BoolP("dates", "", false, "Used with --json to convert fc-timestamps to dates")
 }

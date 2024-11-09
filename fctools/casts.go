@@ -1,9 +1,11 @@
 package fctools
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"strconv"
+	"time"
 
 	pb "github.com/vrypan/fargo/farcaster"
 	db "github.com/vrypan/fargo/localdb"
@@ -171,7 +173,7 @@ func (grp *CastGroup) PprintList(hash *Hash, padding int) string {
 	return out
 }
 
-func (grp *CastGroup) JsonList() ([]byte, error) {
+func (grp *CastGroup) JsonList(hexHashes bool, realTimestamps bool) ([]byte, error) {
 	groupData := make([]interface{}, len(grp.Messages))
 	var jsonData interface{}
 	idx := 0
@@ -181,6 +183,7 @@ func (grp *CastGroup) JsonList() ([]byte, error) {
 			return nil, err
 		}
 		err = json.Unmarshal(json_bytes, &jsonData)
+		jsonPretty(jsonData, hexHashes, realTimestamps)
 		if err != nil {
 			return nil, err
 		}
@@ -201,7 +204,7 @@ JsonThread returns a JSON string.
 replies[casts[x]["hash"]] contains the hashes of the replies to casts[x]
 You can follow the thread by checking
 */
-func (grp *CastGroup) JsonThread() ([]byte, error) {
+func (grp *CastGroup) JsonThread(hexHashes bool, realTimestamps bool) ([]byte, error) {
 	groupData := struct {
 		Head    string                 `json:"head"`
 		Casts   map[string]interface{} `json:"casts"`
@@ -219,6 +222,7 @@ func (grp *CastGroup) JsonThread() ([]byte, error) {
 			return nil, err
 		}
 		err = json.Unmarshal(jsonBytes, &jsonData)
+		jsonPretty(jsonData, hexHashes, realTimestamps)
 		if err != nil {
 			return nil, err
 		}
@@ -249,4 +253,27 @@ func (grp *CastGroup) Links() []string {
 		}
 	}
 	return links
+}
+
+func jsonPretty(data interface{}, hexHashes bool, realTimestamps bool) {
+	switch value := data.(type) {
+	case map[string]interface{}:
+		for k, v := range value {
+			if hexHashes && (k == "hash" || k == "signature" || k == "signer") {
+				bytes, err := base64.StdEncoding.DecodeString(v.(string))
+				if err != nil {
+					panic("Field value is not base64")
+				}
+				value[k] = "0x" + hex.EncodeToString(bytes)
+			} else if realTimestamps && (k == "timestamp") {
+				value[k] = time.Unix(int64(v.(float64))+FARCASTER_EPOCH, 0)
+			} else {
+				jsonPretty(v, hexHashes, realTimestamps)
+			}
+		}
+	case []interface{}:
+		for _, v := range value {
+			jsonPretty(v, hexHashes, realTimestamps)
+		}
+	}
 }

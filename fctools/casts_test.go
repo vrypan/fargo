@@ -10,7 +10,7 @@ import (
 func Test_JsonThread(t *testing.T) {
 	hash, _ := hex.DecodeString("13d491c6583c9bac177e6f8d76791e7326def624")
 	castId := pb.CastId{Fid: 280, Hash: hash}
-	s, err := NewCastGroup().FromCast(nil, &castId, true).JsonThread()
+	s, err := NewCastGroup().FromCast(nil, &castId, true).JsonThread(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func Test_Json(t *testing.T) {
 	if len(grp.Messages) != 20 {
 		t.Fatalf("Expected 20 messages, got %v\n", len(grp.Messages))
 	}
-	s, err := grp.JsonList()
+	s, err := grp.JsonList(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
