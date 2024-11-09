@@ -12,7 +12,7 @@ import (
 
 type tCast struct {
 	Message *pb.Message
-	Replies []tHash
+	Replies []Hash
 }
 
 func (c tCast) String() string {
@@ -22,13 +22,13 @@ func (c tCast) String() string {
 }
 
 type CastGroup struct {
-	Head     tHash
-	Messages map[tHash]*tCast
+	Head     Hash
+	Messages map[Hash]*tCast
 	Fnames   map[uint64]string
 }
 
 func NewCastGroup() *CastGroup {
-	return &CastGroup{Messages: make(map[tHash]*tCast), Fnames: make(map[uint64]string)}
+	return &CastGroup{Messages: make(map[Hash]*tCast), Fnames: make(map[uint64]string)}
 }
 
 /*
@@ -48,10 +48,10 @@ func (grp *CastGroup) FromFid(hub *FarcasterHub, fid uint64, count uint32) *Cast
 		return grp
 	}
 
-	var hash tHash
+	var hash Hash
 	//var cast *pb.Message
 	for _, cast := range messages {
-		hash = tHash(cast.Hash[:])
+		hash = Hash(cast.Hash[:])
 		grp.Messages[hash] = &tCast{Message: cast}
 	}
 	grp.collectFnames(hub)
@@ -86,14 +86,14 @@ func (grp *CastGroup) FromCast(hub *FarcasterHub, castId *pb.CastId, expandTree 
 	if err != nil {
 		return grp
 	}
-	grp.Messages[tHash(cast.Hash)] = &tCast{Message: cast}
-	grp.Head = tHash(cast.Hash)
+	grp.Messages[Hash(cast.Hash)] = &tCast{Message: cast}
+	grp.Head = Hash(cast.Hash)
 	if expandTree {
 		for cast != nil {
-			grp.Messages[tHash(cast.Hash)] = &tCast{Message: cast}
+			grp.Messages[Hash(cast.Hash)] = &tCast{Message: cast}
 			parentCastId := cast.Data.GetCastAddBody().GetParentCastId()
 			if parentCastId == nil {
-				grp.Head = tHash(cast.Hash)
+				grp.Head = Hash(cast.Hash)
 				break
 			}
 			cast, err = hub.PrxGetCast(parentCastId.Fid, parentCastId.Hash)
@@ -107,16 +107,16 @@ func (grp *CastGroup) FromCast(hub *FarcasterHub, castId *pb.CastId, expandTree 
 	return grp
 }
 
-func (grp *CastGroup) expandReplies(hub *FarcasterHub, hash tHash) {
+func (grp *CastGroup) expandReplies(hub *FarcasterHub, hash Hash) {
 	replies, err := hub.GetCastReplies(grp.Messages[hash].Message.Data.Fid, grp.Messages[hash].Message.Hash)
 	if err != nil {
 		return
 	}
 	for _, r := range replies.Messages {
 		parent := grp.Messages[hash]
-		parent.Replies = append(parent.Replies, tHash(r.Hash))
-		grp.Messages[tHash(r.Hash)] = &tCast{Message: r}
-		grp.expandReplies(hub, tHash(r.Hash))
+		parent.Replies = append(parent.Replies, Hash(r.Hash))
+		grp.Messages[Hash(r.Hash)] = &tCast{Message: r}
+		grp.expandReplies(hub, Hash(r.Hash))
 	}
 }
 
@@ -135,7 +135,7 @@ func (grp *CastGroup) collectFnames(hub *FarcasterHub) {
 	}
 }
 
-func (grp *CastGroup) PprintThread(hash *tHash, padding int) string {
+func (grp *CastGroup) PprintThread(hash *Hash, padding int) string {
 	if hash == nil {
 		hash = &grp.Head
 	}
@@ -147,7 +147,7 @@ func (grp *CastGroup) PprintThread(hash *tHash, padding int) string {
 	}
 	return out
 }
-func (grp *CastGroup) PprintList(hash *tHash, padding int) string {
+func (grp *CastGroup) PprintList(hash *Hash, padding int) string {
 	out := ""
 	for _, cast := range grp.Messages {
 		out += FormatCast(cast.Message, grp.Fnames, padding, true, "", "") + "\n"

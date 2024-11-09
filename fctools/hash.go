@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 )
 
-type tHash [20]byte
+type Hash [20]byte
 
-func (h tHash) String() string {
+func (h Hash) String() string {
 	return "0x" + hex.EncodeToString(h[:])
 }
