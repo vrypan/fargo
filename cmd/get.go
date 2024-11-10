@@ -55,8 +55,17 @@ func getRun(cmd *cobra.Command, args []string) {
 
 	switch {
 	case len(parts) == 1 && parts[0] == "profile":
-		s := user.FetchUserData(hub, nil).String()
-		fmt.Println(s)
+		u := user.FetchUserData(hub, nil)
+		if !jsonFlag {
+			fmt.Println(u.String())
+		} else {
+			if b, err := u.Json(jhexFlag, jdatesFlag); err != nil {
+				log.Fatal("Error converting messages to json. ", err)
+			} else {
+				fmt.Println(string(b))
+			}
+		}
+
 	case len(parts) == 2 && parts[0] == "profile":
 		t := strings.ToUpper("USER_DATA_TYPE_" + parts[1])
 		s := user.FetchUserData(hub, []string{t}).Value(t)

@@ -3,6 +3,7 @@ package fctools
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	pb "github.com/vrypan/fargo/farcaster"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -73,27 +74,34 @@ func (u *User) Value(t string) string {
 
 }
 
-func (u *User) Json() ([]byte, error) {
-	UserData := make(map[string]json.RawMessage)
+func (u *User) Json(hexHashes bool, realTimestamps bool) ([]byte, error) {
+	UserData := make([]interface{}, len(u.UserData))
+	var jsonData interface{}
 	for _, message := range u.UserData {
 		jsonBytes, err := protojson.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
-		UserData[message.Data.GetUserDataBody().Type.String()] = jsonBytes
+		err = json.Unmarshal(jsonBytes, &jsonData)
+		jsonPretty(jsonData, hexHashes, realTimestamps)
+		UserData = append(UserData, jsonData)
 	}
+
 	updatedJsonBytes, err := json.MarshalIndent(UserData, "", "  ")
 	if err != nil {
 		return nil, err
 	}
+
 	return updatedJsonBytes, nil
 }
 
 func (u *User) String() string {
 	var out string
 	for _, message := range u.UserData {
-		out += message.Data.GetUserDataBody().Type.String() +
-			": " +
+		out += strings.ToLower(
+			message.Data.GetUserDataBody().Type.String()[len("USER_DATA_TYPE_"):],
+		)
+		out += ": " +
 			message.Data.GetUserDataBody().GetValue() +
 			"\n"
 	}
