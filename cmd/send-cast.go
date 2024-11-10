@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/vrypan/fargo/config"
 	pb "github.com/vrypan/fargo/farcaster"
 	"github.com/vrypan/fargo/fctools"
+	db "github.com/vrypan/fargo/localdb"
 )
 
 var sendCastCmd = &cobra.Command{
@@ -28,6 +28,8 @@ to multiple casts posted as a thread.`,
 
 func runSendCast(cmd *cobra.Command, args []string) {
 	config.Load()
+	db.Open()
+	defer db.Close()
 
 	var err error
 	var privateKey []byte
@@ -87,8 +89,8 @@ func runSendCast(cmd *cobra.Command, args []string) {
 	)
 	for { // Cast storm!!!
 		castText, mentionsPositions, mentions, embeds, more = fctools.ProcessCastBody(more)
-		castText = strings.TrimSpace(castText)
-		more = strings.TrimSpace(more)
+		//castText = strings.TrimSpace(castText)
+		//more = strings.TrimSpace(more)
 		if len(embeds) > 2 {
 			embeds = embeds[0:2]
 		}

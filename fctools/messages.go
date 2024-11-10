@@ -24,12 +24,11 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 		mentions         []uint64
 		embeds           []*pb.Embed
 		resultText       string
-		currentIndex     int
 		offset           int
 		embedCount       int
 	)
 
-	urlRe := regexp.MustCompile(`^\[(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)\]$`)
+	urlRe := regexp.MustCompile(`^\[(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)\](\S*)$`)
 	fnameRe := regexp.MustCompile(`^@([a-z0-9][a-z0-9-]{0,15})((\.eth)?)(\S*)`)
 
 	lines := strings.Split(text, "\n")
@@ -43,9 +42,14 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 						if len(resultText+" "+matched[4]) > 1024 {
 							return resultText, mentionPositions, mentions, embeds, fmtMoreText(word, words[wIdx+1:], lines[lIdx+1:])
 						}
-						mentionPositions = append(mentionPositions, uint32(currentIndex))
+						if wIdx > 0 {
+							resultText += " "
+							offset++
+						}
+						mentionPositions = append(mentionPositions, uint32(offset))
 						mentions = append(mentions, fid)
-						offset += len(matched[4]) + 1
+						resultText += matched[4]
+						offset += len(matched[4])
 					}
 				}
 			case urlRe.MatchString(word):
@@ -56,24 +60,27 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 					embeds = append(embeds, &pb.Embed{
 						Embed: &pb.Embed_Url{Url: matched[1]},
 					})
-					if resultText != "" {
+					if wIdx > 0 {
 						resultText += " "
+						offset++
 					}
 					resultText += "[" + strconv.Itoa(embedCount+1) + "]"
-					offset += 4
+					offset += 3
 					embedCount++
+					resultText += matched[2]
+					offset += len(matched[2])
 				}
 			default:
 				if len(resultText+" "+word) > 1024 {
 					return resultText, mentionPositions, mentions, embeds, fmtMoreText(word, words[wIdx+1:], lines[lIdx+1:])
 				}
-				if resultText != "" && wIdx > 0 {
+				if wIdx > 0 {
 					resultText += " "
+					offset++
 				}
 				resultText += word
-				offset += len(word) + 1
+				offset += len(word)
 			}
-			currentIndex = offset
 		}
 		resultText += "\n"
 		offset++
