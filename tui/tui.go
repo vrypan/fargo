@@ -226,7 +226,6 @@ import (
 */
 
 func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInReply bool, highlight string, grep string) string {
-	var out string
 
 	body := pb.CastAddBody(*msg.Data.GetCastAddBody())
 
@@ -239,34 +238,51 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 	builder.WriteString(body.Text[ptr:])
 	textBody := wordwrap.String(builder.String(), 79)
 
+	builder.Reset()
+	builder.WriteString(ppCastId(fnames[msg.Data.Fid], msg.Hash))
+	builder.WriteString(" ")
+	builder.WriteString(ppTimestamp(msg.Data.Timestamp))
+	builder.WriteString("\n")
+
 	if showInReply {
 		switch body.GetParent().(type) {
 		case *pb.CastAddBody_ParentCastId:
 			h := "0x" + hex.EncodeToString(body.GetParentCastId().Hash)
 			id := fnames[body.GetParentCastId().Fid]
-			out = "↳ In reply to @" + id + "/" + h + "\n\n" + out
+			builder.WriteString("↳ In reply to @")
+			builder.WriteString(id)
+			builder.WriteString("/")
+			builder.WriteString(h)
+			builder.WriteString("\n\n")
 		case *pb.CastAddBody_ParentUrl:
-			out = "↳ In reply to " + body.GetParentUrl() + "\n\n" + out
+			builder.WriteString("↳ In reply to ")
+			builder.WriteString(body.GetParentUrl())
+			builder.WriteString("\n\n")
 		}
 	}
 
-	out = textBody
-	out = " " + ppTimestamp(msg.Data.Timestamp) + "\n" + out
-	out = ppCastId(fnames[msg.Data.Fid], msg.Hash) + out
+	builder.WriteString(textBody)
 
 	if len(body.Embeds) > 0 {
-		out += "\n----"
+		builder.WriteString("\n----")
 	}
 	for i, embed := range body.Embeds {
 		switch embed.GetEmbed().(type) {
 		case *pb.Embed_CastId:
-			out += "\n[" + strconv.Itoa(i+1) + "] " + ppCastId(fnames[embed.GetCastId().Fid], embed.GetCastId().Hash)
+			builder.WriteString("\n[")
+			builder.WriteString(strconv.Itoa(i + 1))
+			builder.WriteString("] ")
+			builder.WriteString(ppCastId(fnames[embed.GetCastId().Fid], embed.GetCastId().Hash))
 		case *pb.Embed_Url:
-			out += "\n[" + strconv.Itoa(i+1) + "] " + ppUrl(embed.GetUrl())
+			builder.WriteString("\n[")
+			builder.WriteString(strconv.Itoa(i + 1))
+			builder.WriteString("] ")
+			builder.WriteString(ppUrl(embed.GetUrl()))
 		}
 	}
+	out := builder.String()
 
-	var out2 strings.Builder
+	builder.Reset()
 	boldFormatting := hex.EncodeToString(msg.Hash) == string(highlight)
 	for n, l := range strings.Split(out, "\n") {
 		prefix := "│ "
@@ -274,17 +290,17 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 			prefix = "┌─ "
 		}
 		if boldFormatting {
-			out2.WriteString(coloring.Bold(prefix + l + "\n"))
+			builder.WriteString(coloring.Bold(prefix + l + "\n"))
 		} else {
-			out2.WriteString(prefix + l + "\n")
+			builder.WriteString(prefix + l + "\n")
 		}
 	}
 	if boldFormatting {
-		out2.WriteString(coloring.Bold("└───") + "\n")
+		builder.WriteString(coloring.Bold("└───") + "\n")
 	} else {
-		out2.WriteString("└───\n")
+		builder.WriteString("└───\n")
 	}
-	return addPadding(out2.String(), padding, " ") + "\n"
+	return addPadding(builder.String(), padding, " ") + "\n"
 }
 
 func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int, hilightHash string) string {
