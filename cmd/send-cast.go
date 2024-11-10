@@ -16,10 +16,13 @@ import (
 
 var sendCastCmd = &cobra.Command{
 	Use:   "cast [text]",
-	Short: "Send new cast",
+	Short: "Posts new cast",
 	Long: `[text] is the full cast text.
-Any @mentions will be identified automatically and
-the first two links will be converted to embeds.`,
+Any @mentions will be identified automatically and (up to two)
+links enclosed in brackets will be converted to embeds.
+
+If the text is longer than 1024 bytes, it will be broken down
+to multiple casts posted as a thread.`,
 	Run: runSendCast,
 }
 
