@@ -282,6 +282,14 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 	}
 	out := builder.String()
 
+	if grep != "" {
+		if strings.Contains(out, grep) {
+			out = strings.ReplaceAll(out, grep, coloring.Invert(grep))
+		} else {
+			return ""
+		}
+	}
+
 	builder.Reset()
 	boldFormatting := hex.EncodeToString(msg.Hash) == string(highlight)
 	for n, l := range strings.Split(out, "\n") {
@@ -303,22 +311,22 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 	return addPadding(builder.String(), padding, " ") + "\n"
 }
 
-func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int, hilightHash string) string {
+func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int, hilightHash string, grep string) string {
 	if hash == nil {
 		hash = &grp.Head
 	}
 	out := ""
 	cast := grp.Messages[*hash].Message
-	out += FormatCast(cast, grp.Fnames, padding, (padding == 0), hilightHash, "")
+	out += FormatCast(cast, grp.Fnames, padding, (padding == 0), hilightHash, grep)
 	for _, reply := range grp.Messages[*hash].Replies {
-		out += PprintThread(grp, &reply, padding+4, hilightHash)
+		out += PprintThread(grp, &reply, padding+4, hilightHash, grep)
 	}
 	return out
 }
-func PprintList(grp *fctools.CastGroup, hash *fctools.Hash, padding int) string {
+func PprintList(grp *fctools.CastGroup, hash *fctools.Hash, padding int, grep string) string {
 	out := ""
 	for _, cast := range grp.Messages {
-		out += FormatCast(cast.Message, grp.Fnames, padding, true, "", "") + "\n"
+		out += FormatCast(cast.Message, grp.Fnames, padding, true, "", grep) + "\n"
 	}
 	return out
 }

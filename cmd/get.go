@@ -45,11 +45,10 @@ func getRun(cmd *cobra.Command, args []string) {
 	jhexFlag, _ := cmd.Flags().GetBool("hex-hashes")
 	jdatesFlag, _ := cmd.Flags().GetBool("dates")
 	countFlag := uint32(config.GetInt("get.count"))
+	grepFlag, _ := cmd.Flags().GetString("grep")
 	if c, _ := cmd.Flags().GetInt("count"); c > 0 {
 		countFlag = uint32(c)
 	}
-
-	//grepFlag, _ := cmd.Flags().GetString("grep")
 
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
@@ -69,7 +68,7 @@ func getRun(cmd *cobra.Command, args []string) {
 			s, _ := casts.JsonList(jhexFlag, jdatesFlag)
 			fmt.Println(string(s))
 		} else {
-			s := tui.PprintList(casts, nil, 0)
+			s := tui.PprintList(casts, nil, 0, grepFlag)
 			fmt.Println(s)
 		}
 	case len(parts) == 1 && strings.HasPrefix(parts[0], "0x"):
@@ -80,9 +79,9 @@ func getRun(cmd *cobra.Command, args []string) {
 			fmt.Println(string(s))
 		} else {
 			if expandFlag {
-				fmt.Println(tui.PprintThread(casts, nil, 0, parts[0][2:]))
+				fmt.Println(tui.PprintThread(casts, nil, 0, parts[0][2:], grepFlag))
 			} else {
-				fmt.Println(tui.PprintThread(casts, nil, 0, ""))
+				fmt.Println(tui.PprintThread(casts, nil, 0, "", grepFlag))
 			}
 
 		}
