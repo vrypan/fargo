@@ -55,21 +55,29 @@ func getRun(cmd *cobra.Command, args []string) {
 
 	switch {
 	case len(parts) == 1 && parts[0] == "profile":
-		u := user.FetchUserData(hub, nil)
+		user.FetchUserData(hub, nil)
 		if !jsonFlag {
-			fmt.Println(u.String())
+			fmt.Println(user.String())
 		} else {
-			if b, err := u.Json(jhexFlag, jdatesFlag); err != nil {
+			if b, err := user.Json("", jhexFlag, jdatesFlag); err != nil {
 				log.Fatal("Error converting messages to json. ", err)
 			} else {
 				fmt.Println(string(b))
 			}
 		}
-
 	case len(parts) == 2 && parts[0] == "profile":
 		t := strings.ToUpper("USER_DATA_TYPE_" + parts[1])
-		s := user.FetchUserData(hub, []string{t}).Value(t)
-		fmt.Println(s)
+		user.FetchUserData(hub, nil)
+		if !jsonFlag {
+			s := user.FetchUserData(hub, []string{t}).Value(t)
+			fmt.Println(s)
+		} else {
+			if b, err := user.Json(t, jhexFlag, jdatesFlag); err != nil {
+				log.Fatal("Error converting messages to json. ", err)
+			} else {
+				fmt.Println(string(b))
+			}
+		}
 	case len(parts) == 1 && parts[0] == "casts":
 		// TBA: grepFlag
 		casts := fctools.NewCastGroup().FromFid(hub, user.Fid, countFlag)

@@ -74,24 +74,25 @@ func (u *User) Value(t string) string {
 
 }
 
-func (u *User) Json(hexHashes bool, realTimestamps bool) ([]byte, error) {
-	UserData := make([]interface{}, len(u.UserData))
-	var jsonData interface{}
-	for _, message := range u.UserData {
-		jsonBytes, err := protojson.Marshal(message)
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(jsonBytes, &jsonData)
-		jsonPretty(jsonData, hexHashes, realTimestamps)
-		UserData = append(UserData, jsonData)
-	}
+func (u *User) Json(userDataType string, hexHashes bool, realTimestamps bool) ([]byte, error) {
+	UserData := make([]interface{}, 0)
 
+	var jsonData interface{}
+	for t, message := range u.UserData {
+		if t == userDataType || userDataType == "" {
+			jsonBytes, err := protojson.Marshal(message)
+			if err != nil {
+				return nil, err
+			}
+			err = json.Unmarshal(jsonBytes, &jsonData)
+			jsonPretty(jsonData, hexHashes, realTimestamps)
+			UserData = append(UserData, jsonData)
+		}
+	}
 	updatedJsonBytes, err := json.MarshalIndent(UserData, "", "  ")
 	if err != nil {
 		return nil, err
 	}
-
 	return updatedJsonBytes, nil
 }
 
