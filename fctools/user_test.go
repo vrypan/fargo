@@ -6,7 +6,7 @@ import (
 
 func Test_UserJson(t *testing.T) {
 	u := NewUser().FromFid(280).FetchUserData(nil, nil)
-	s, err := u.Json()
+	s, err := u.Json(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
