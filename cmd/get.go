@@ -79,7 +79,7 @@ func getRun(cmd *cobra.Command, args []string) {
 			s, _ := casts.JsonThread(jhexFlag, jdatesFlag)
 			fmt.Println(string(s))
 		} else {
-			fmt.Println(tui.PprintThread(casts, nil, 0))
+			fmt.Println(tui.PprintThread(casts, nil, 0, parts[0][2:]))
 		}
 	case len(parts) >= 2 && strings.HasPrefix(parts[0], "0x") && parts[1] == "embed":
 		casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], false)

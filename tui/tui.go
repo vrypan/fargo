@@ -30,13 +30,22 @@ func ppCastId(fname string, hash []byte) string {
 func ppUrl(url string) string {
 	return coloring.Green(url)
 }
-func addPadding(s string, padding int) string {
-	padding_s := strings.Repeat(" ", padding)
+func addPadding(s string, padding int, paddingString string) string {
+	padding_s := strings.Repeat(paddingString, padding)
 	lines := strings.Split(strings.TrimSpace(s), "\n")
 	for i, line := range lines {
 		lines[i] = padding_s + line
 	}
 	return strings.Join(lines, "\n")
+}
+func boldBlock(s string) string {
+	sb := strings.Builder{}
+	lines := strings.Split(strings.TrimSpace(s), "\n")
+	for _, line := range lines {
+		sb.WriteString(coloring.Bold(line))
+		sb.WriteString("\n")
+	}
+	return strings.TrimSuffix(sb.String(), "\n")
 }
 
 /*
@@ -221,13 +230,14 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 
 	body := pb.CastAddBody(*msg.Data.GetCastAddBody())
 
+	var builder strings.Builder
 	var ptr uint32 = 0
 	for i, mention := range body.Mentions {
-		out += body.Text[ptr:body.MentionsPositions[i]] + "@" + fnames[mention]
+		builder.WriteString(body.Text[ptr:body.MentionsPositions[i]] + "@" + fnames[mention])
 		ptr = body.MentionsPositions[i]
 	}
-	out += body.Text[ptr:]
-	out = wordwrap.String(out, 79)
+	builder.WriteString(body.Text[ptr:])
+	textBody := wordwrap.String(builder.String(), 79)
 
 	if showInReply {
 		switch body.GetParent().(type) {
@@ -240,6 +250,7 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 		}
 	}
 
+	out = textBody
 	out = " " + ppTimestamp(msg.Data.Timestamp) + "\n" + out
 	out = ppCastId(fnames[msg.Data.Fid], msg.Hash) + out
 
@@ -255,28 +266,36 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 		}
 	}
 
-	var out2 string = ""
+	var out2 strings.Builder
+	boldFormatting := hex.EncodeToString(msg.Hash) == string(highlight)
 	for n, l := range strings.Split(out, "\n") {
+		prefix := "│ "
 		if n == 0 {
-			out2 = "┌─ " + l + "\n"
+			prefix = "┌─ "
+		}
+		if boldFormatting {
+			out2.WriteString(coloring.Bold(prefix + l + "\n"))
 		} else {
-			out2 += "│ " + l + "\n"
+			out2.WriteString(prefix + l + "\n")
 		}
 	}
-	out2 += "└───\n"
-
-	return addPadding(out2, padding) + "\n"
+	if boldFormatting {
+		out2.WriteString(coloring.Bold("└───") + "\n")
+	} else {
+		out2.WriteString("└───\n")
+	}
+	return addPadding(out2.String(), padding, " ") + "\n"
 }
 
-func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int) string {
+func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int, hilightHash string) string {
 	if hash == nil {
 		hash = &grp.Head
 	}
 	out := ""
 	cast := grp.Messages[*hash].Message
-	out += FormatCast(cast, grp.Fnames, padding, (padding == 0), "", "")
+	out += FormatCast(cast, grp.Fnames, padding, (padding == 0), hilightHash, "")
 	for _, reply := range grp.Messages[*hash].Replies {
-		out += PprintThread(grp, &reply, padding+4)
+		out += PprintThread(grp, &reply, padding+4, hilightHash)
 	}
 	return out
 }
