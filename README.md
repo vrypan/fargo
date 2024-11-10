@@ -28,8 +28,7 @@ Available Commands:
   download    Download Farcaster-embedded URLs
   get         Get Farcaster data
   help        Help about any command
-  inspect     Inspect a cast
-  send        Submit messages to the network
+  post        Submit messages to the network
   version     Get the current version
 
 Flags:
@@ -46,6 +45,8 @@ The second one will also make you appreciate how much spam is suppressed by Warp
 
 ## Interacting with the network
 
-To interact with the network (currently `fargo send cast`) you will need an app keypair (private/public).
+To interact with the network (currently `fargo post cast`) you will need an app keypair (private/public).
 At the moment, Fargo does not provide a way to generate these keys, but you can use a service like
 https://www.castkeys.xyz to generate them.
+
+Check out `fargo post cast --help` for more info.
