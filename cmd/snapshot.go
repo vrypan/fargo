@@ -61,13 +61,14 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		err = os.Mkdir(path, 0755)
 		if err != nil {
-			log.Fatalf("Failed to create output directory %s: %v", outFlag, err)
+			log.Fatalf("Failed to create output directory %s: %v", path, err)
 		}
 	}
 
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
 
+	log.Println("Fetching casts...")
 	casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], expandFlag)
 
 	s := tui.PprintThread(casts, nil, 0, "", "")
@@ -84,6 +85,7 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to write thread.txt file: %v", err)
 	}
 
+	log.Println("Downloading embeded URLs...")
 	allUrls := make([]*urls.Url, len(casts.Links()))
 	urlMap := make(map[string]string)
 	for i, l := range casts.Links() {
@@ -100,6 +102,7 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to write embedsmap.json file: %v", err)
 	}
 
+	log.Println("Downloading PFPs...")
 	localdb.Open()
 	defer localdb.Close()
 	for fid := range casts.Fnames {
@@ -111,7 +114,7 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 		}
 		fidStr := strconv.FormatUint(fid, 10)
 		// GetFile(pfp, path, fidStr+"."+ext, false)
-		log.Printf("Downloading: %s", pfp)
+		// log.Printf("Downloading: %s", pfp)
 		req, err := http.NewRequest("GET", pfp, nil)
 		if err != nil {
 			log.Printf("Failed to create request for %s: %v", pfp, err)
@@ -138,7 +141,7 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
-
+	log.Println("Done.")
 }
 
 func init() {
