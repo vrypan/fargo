@@ -31,6 +31,24 @@ func (c Cast) Fid() string {
 func (c Cast) Text() string {
 	return c.Message.Data.GetCastAddBody().Text
 }
+func (c Cast) Json(hexHashes bool, realTimestamps bool) ([]byte, error) {
+	//data := interface
+	var jsonData interface{}
+	jsonBytes, err := protojson.Marshal(c.Message)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(jsonBytes, &jsonData)
+	jsonPretty(jsonData, hexHashes, realTimestamps)
+	if err != nil {
+		return nil, err
+	}
+	updatedJsonBytes, err := json.MarshalIndent(jsonData, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return updatedJsonBytes, nil
+}
 
 type CastGroup struct {
 	Head     Hash
@@ -189,10 +207,12 @@ func (grp *CastGroup) JsonThread(hexHashes bool, realTimestamps bool) ([]byte, e
 		Head    string                 `json:"head"`
 		Casts   map[string]interface{} `json:"casts"`
 		Replies map[string][]string    `json:"replies"`
+		Fnames  map[uint64]string      `json:"fnames"`
 	}{
 		Head:    grp.Head.String(),
 		Casts:   make(map[string]interface{}),
 		Replies: make(map[string][]string),
+		Fnames:  grp.Fnames,
 	}
 
 	for hash, message := range grp.Messages {
