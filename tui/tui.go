@@ -326,7 +326,7 @@ func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int, hilig
 func PprintList(grp *fctools.CastGroup, hash *fctools.Hash, padding int, grep string) string {
 	out := ""
 	for _, cast := range grp.Messages {
-		out += FormatCast(cast.Message, grp.Fnames, padding, true, "", grep) + "\n"
+		out += FormatCast(cast.Message, grp.Fnames, padding, true, "", grep)
 	}
 	return out
 }
