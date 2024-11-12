@@ -27,7 +27,7 @@ to multiple casts posted as a thread.`,
 }
 
 func runSendCast(cmd *cobra.Command, args []string) {
-	config.Load()
+	//config.Load()
 	db.Open()
 	defer db.Close()
 

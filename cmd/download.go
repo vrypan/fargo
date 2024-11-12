@@ -29,7 +29,7 @@ URLs you want to download.`,
 }
 
 func downloadRun(cmd *cobra.Command, args []string) {
-	config.Load()
+	//config.Load()
 	user, parts := parse_url(args)
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()

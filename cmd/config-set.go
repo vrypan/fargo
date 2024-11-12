@@ -1,10 +1,10 @@
 package cmd
 
 import (
-    "log"
-    "github.com/spf13/cobra"
-    "github.com/spf13/viper"
-    "github.com/vrypan/fargo/config"
+	"log"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var configsetCmd = &cobra.Command{
@@ -18,7 +18,7 @@ fargo config set hub.ssl false`,
 }
 
 func config_set(cmd *cobra.Command, args []string) {
-    config.Load()
+    //config.Load()
     if len(args) != 2 {
         log.Fatal("Wrong number of arguments")
     }

@@ -1,10 +1,10 @@
 package cmd
 
 import (
-    "fmt"
-    "github.com/spf13/cobra"
-    "github.com/spf13/viper"
-    "github.com/vrypan/fargo/config"
+	"fmt"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var configlsCmd = &cobra.Command{
@@ -38,10 +38,10 @@ func traverse(parent string, data map[string]interface{}) {
     }
 }
 func config_ls(cmd *cobra.Command, args []string) {
-        config.Load()
+        //config.Load()
         settings := viper.AllSettings()
         traverse("",settings)
-        
+
     }
 func init() {
     configCmd.AddCommand(configlsCmd)

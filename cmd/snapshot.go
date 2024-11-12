@@ -33,7 +33,7 @@ files containing all the messages in the thread.`,
 }
 
 func getSnapshot(cmd *cobra.Command, args []string) {
-	config.Load()
+	//config.Load()
 	user, parts := parse_url(args)
 	if user == nil {
 		log.Fatal("User not found")

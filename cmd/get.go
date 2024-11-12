@@ -35,7 +35,7 @@ var getCmd = &cobra.Command{
 }
 
 func getRun(cmd *cobra.Command, args []string) {
-	config.Load()
+	// config.Load()
 	user, parts := parse_url(args)
 	if user == nil {
 		log.Fatal("User not found")
