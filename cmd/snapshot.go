@@ -70,6 +70,9 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 
 	log.Println("Fetching casts...")
 	casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], expandFlag)
+	if casts == nil || len(casts.Messages) == 0 {
+		log.Fatalf("Failed to get cast or thread %s", parts[0])
+	}
 
 	s := tui.PprintThread(casts, nil, 0, "", "")
 	err = os.WriteFile(filepath.Join(path, "thread.txt"), []byte(s), 0644)

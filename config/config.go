@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -23,11 +24,16 @@ func Load() string { // Load config and return config file path
 	viper.AddConfigPath(configDir)
 	viper.SetConfigType("yaml")
 
+	defaultDownload := "~/Downloads"
+	if home, err := os.UserHomeDir(); err == nil {
+		defaultDownload = filepath.Join(home, "Downloads")
+	}
+
 	defaults := map[string]interface{}{
 		"hub.host":     "hoyt.farcaster.xyz",
 		"hub.port":     "2283",
 		"hub.ssl":      "true",
-		"download.dir": "~/Downloads",
+		"download.dir": defaultDownload,
 		"get.count":    20,
 		"cast.fid":     0,
 		"cast.privkey": "",
