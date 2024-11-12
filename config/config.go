@@ -25,9 +25,6 @@ func Load() string { // Load config and return config file path
 	viper.SetConfigType("yaml")
 
 	defaultDownload := "~/Downloads"
-	if home, err := os.UserHomeDir(); err == nil {
-		defaultDownload = filepath.Join(home, "Downloads")
-	}
 
 	defaults := map[string]interface{}{
 		"hub.host":     "hoyt.farcaster.xyz",
@@ -51,6 +48,15 @@ func Load() string { // Load config and return config file path
 		} else {
 			log.Fatalf("Error reading config file: %v", err)
 		}
+	}
+
+	downloadDir := viper.GetString("download.dir")
+	if strings.HasPrefix(downloadDir, "~") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatalf("Error getting user home directory: %v", err)
+		}
+		viper.Set("download.dir", filepath.Join(home, downloadDir[1:]))
 	}
 	return viper.ConfigFileUsed()
 }

@@ -149,6 +149,6 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.AddCommand(snapshotCmd)
-	snapshotCmd.Flags().BoolP("recursive", "r", false, "Recursively get parent casts and replies")
+	snapshotCmd.Flags().BoolP("recursive", "r", true, "Recursively get parent casts and replies")
 	snapshotCmd.Flags().StringP("out", "", "", "Output directory")
 }
