@@ -28,6 +28,7 @@ var getCmd = &cobra.Command{
 	Short:   "Get Farcaster data",
 	Long: `URI formats supported:
 - @username/casts
+- @username/reactions
 - @username/0x<hash>
 - @username/0x<hash>/embed
 - @username/0x<hash>/embed/<index>
@@ -88,18 +89,26 @@ func getRun(cmd *cobra.Command, args []string) {
 			s, _ := casts.JsonList(jhexFlag, jdatesFlag)
 			fmt.Println(string(s))
 		} else {
-			s := tui.PprintList(casts, nil, 0, grepFlag)
+			s := tui.PprintCastList(casts, nil, 0, grepFlag)
 			fmt.Println(s)
 		}
-	case len(parts) == 1 && parts[0] == "likes":
+	case len(parts) == 1 && parts[0] == "reactions":
 		likes := fctools.NewReactions().FromFid(hub, user.Fid, "like", countFlag)
 		casts := fctools.NewCastGroup().FromCastIds(hub, likes.CastIds()).CollectFnames(hub)
 		if jsonFlag {
 			s, _ := casts.JsonList(jhexFlag, jdatesFlag)
 			fmt.Println(string(s))
 		} else {
-			s := tui.PprintList(casts, nil, 0, grepFlag)
-			fmt.Println(s)
+			var builder strings.Builder
+			for _, cast := range casts.Messages {
+				builder.WriteString(
+					tui.FmtCast(cast.Message, casts.Fnames, 0, true,
+						&tui.FmtCastOpts{Grep: grepFlag, Highlight: ""}),
+				)
+			}
+			fmt.Println(builder.String())
+			//s := tui.PprintCastList(casts, nil, 0, grepFlag)
+			//fmt.Println(s)
 		}
 	case len(parts) == 1 && strings.HasPrefix(parts[0], "0x"):
 		// TBA: grepFlag
