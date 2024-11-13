@@ -282,14 +282,6 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 	}
 	out := builder.String()
 
-	if grep != "" {
-		if strings.Contains(out, grep) {
-			out = strings.ReplaceAll(out, grep, coloring.Invert(grep))
-		} else {
-			return ""
-		}
-	}
-
 	builder.Reset()
 	boldFormatting := hex.EncodeToString(msg.Hash) == string(highlight)
 	for n, l := range strings.Split(out, "\n") {
@@ -308,7 +300,15 @@ func FormatCast(msg *pb.Message, fnames map[uint64]string, padding int, showInRe
 	} else {
 		builder.WriteString("└───\n")
 	}
-	return addPadding(builder.String(), padding, " ") + "\n"
+
+	if grep != "" && !strings.Contains(builder.String(), grep) {
+		return ""
+	}
+	out = builder.String()
+	if grep != "" {
+		out = strings.ReplaceAll(out, grep, coloring.Invert(grep))
+	}
+	return addPadding(out, padding, " ") + "\n"
 }
 
 func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int, hilightHash string, grep string) string {
