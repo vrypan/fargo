@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vrypan/fargo/config"
 	"github.com/vrypan/fargo/fctools"
+	db "github.com/vrypan/fargo/localdb"
 	"github.com/vrypan/fargo/tui"
 )
 
@@ -50,6 +51,8 @@ func getRun(cmd *cobra.Command, args []string) {
 		countFlag = uint32(c)
 	}
 
+	db.Open()
+	defer db.Close()
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
 
@@ -81,6 +84,16 @@ func getRun(cmd *cobra.Command, args []string) {
 	case len(parts) == 1 && parts[0] == "casts":
 		// TBA: grepFlag
 		casts := fctools.NewCastGroup().FromFid(hub, user.Fid, countFlag)
+		if jsonFlag {
+			s, _ := casts.JsonList(jhexFlag, jdatesFlag)
+			fmt.Println(string(s))
+		} else {
+			s := tui.PprintList(casts, nil, 0, grepFlag)
+			fmt.Println(s)
+		}
+	case len(parts) == 1 && parts[0] == "likes":
+		likes := fctools.NewReactions().FromFid(hub, user.Fid, "like", countFlag)
+		casts := fctools.NewCastGroup().FromCastIds(hub, likes.CastIds()).CollectFnames(hub)
 		if jsonFlag {
 			s, _ := casts.JsonList(jhexFlag, jdatesFlag)
 			fmt.Println(string(s))

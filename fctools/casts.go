@@ -8,7 +8,6 @@ import (
 	"time"
 
 	pb "github.com/vrypan/fargo/farcaster"
-	db "github.com/vrypan/fargo/localdb"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -65,9 +64,6 @@ Populates a CastGroup with recent casts from an Fid.
 Head is set to nil.
 */
 func (grp *CastGroup) FromFid(hub *FarcasterHub, fid uint64, count uint32) *CastGroup {
-	db.Open()
-	defer db.Close()
-
 	if hub == nil {
 		hub = NewFarcasterHub()
 		defer hub.Close()
@@ -83,7 +79,23 @@ func (grp *CastGroup) FromFid(hub *FarcasterHub, fid uint64, count uint32) *Cast
 		hash = Hash(cast.Hash[:])
 		grp.Messages[hash] = &Cast{Message: cast}
 	}
-	grp.collectFnames(hub)
+	grp.CollectFnames(hub)
+	return grp
+}
+
+/*
+Populates a CastGroup with recent likes from an Fid.
+Head is set to nil.
+*/
+func (grp *CastGroup) FromCastIds(hub *FarcasterHub, castIds []*pb.CastId) *CastGroup {
+	if hub == nil {
+		hub = NewFarcasterHub()
+		defer hub.Close()
+	}
+
+	for _, cid := range castIds {
+		grp.AppendCast(hub, cid)
+	}
 	return grp
 }
 
@@ -104,9 +116,6 @@ func (grp *CastGroup) FromCastFidHash(hub *FarcasterHub, fid uint64, hash string
 }
 
 func (grp *CastGroup) FromCast(hub *FarcasterHub, castId *pb.CastId, expandTree bool) *CastGroup {
-	db.Open()
-	defer db.Close()
-
 	if hub == nil {
 		hub = NewFarcasterHub()
 		defer hub.Close()
@@ -132,7 +141,20 @@ func (grp *CastGroup) FromCast(hub *FarcasterHub, castId *pb.CastId, expandTree 
 		}
 		grp.expandReplies(hub, grp.Head)
 	}
-	grp.collectFnames(hub)
+	grp.CollectFnames(hub)
+	return grp
+}
+func (grp *CastGroup) AppendCast(hub *FarcasterHub, castId *pb.CastId) *CastGroup {
+	if hub == nil {
+		hub = NewFarcasterHub()
+		defer hub.Close()
+	}
+	cast, err := hub.PrxGetCast(castId.Fid, castId.Hash)
+	if err != nil {
+		return grp
+	}
+	grp.Messages[Hash(cast.Hash)] = &Cast{Message: cast}
+	grp.Head = Hash(cast.Hash)
 	return grp
 }
 
@@ -149,7 +171,7 @@ func (grp *CastGroup) expandReplies(hub *FarcasterHub, hash Hash) {
 	}
 }
 
-func (grp *CastGroup) collectFnames(hub *FarcasterHub) {
+func (grp *CastGroup) CollectFnames(hub *FarcasterHub) *CastGroup {
 	for _, msg := range grp.Messages {
 		grp.Fnames[msg.Message.Data.Fid], _ = hub.PrxGetUserDataStr(msg.Message.Data.Fid, "USER_DATA_TYPE_USERNAME")
 
@@ -169,6 +191,7 @@ func (grp *CastGroup) collectFnames(hub *FarcasterHub) {
 		}
 
 	}
+	return grp
 }
 
 func (grp *CastGroup) JsonList(hexHashes bool, realTimestamps bool) ([]byte, error) {

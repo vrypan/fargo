@@ -196,6 +196,18 @@ func (hub FarcasterHub) GetCastsByFid(fid uint64, pageSize uint32) ([]*pb.Messag
 	return msg.Messages, nil
 }
 
+func (hub FarcasterHub) GetReactionsByFid(fid uint64, reaction string, pageSize uint32) ([]*pb.Message, error) {
+	reverse := true
+	reactionType := pb.ReactionType(pb.ReactionType_value[reaction])
+	msg, err := hub.client.GetReactionsByFid(hub.ctx,
+		&pb.ReactionsByFidRequest{Fid: fid, ReactionType: &reactionType, Reverse: &reverse, PageSize: &pageSize},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return msg.Messages, nil
+}
+
 func (hub FarcasterHub) GetCast(fid uint64, hash []byte) (*pb.Message, error) {
 	return hub.client.GetCast(hub.ctx, &pb.CastId{Fid: fid, Hash: hash})
 }

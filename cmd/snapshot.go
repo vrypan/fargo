@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vrypan/fargo/config"
 	"github.com/vrypan/fargo/fctools"
-	"github.com/vrypan/fargo/localdb"
+	db "github.com/vrypan/fargo/localdb"
 	"github.com/vrypan/fargo/tui"
 	"github.com/vrypan/fargo/urls"
 )
@@ -68,6 +68,9 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 	hub := fctools.NewFarcasterHub()
 	defer hub.Close()
 
+	db.Open()
+	defer db.Close()
+
 	log.Println("Fetching casts...")
 	casts := fctools.NewCastGroup().FromCastFidHash(hub, user.Fid, parts[0][2:], expandFlag)
 	if casts == nil || len(casts.Messages) == 0 {
@@ -106,8 +109,7 @@ func getSnapshot(cmd *cobra.Command, args []string) {
 	}
 
 	log.Println("Downloading PFPs...")
-	localdb.Open()
-	defer localdb.Close()
+
 	for fid := range casts.Fnames {
 		pfp, _ := hub.PrxGetUserDataStr(fid, "USER_DATA_TYPE_PFP")
 		url := urls.NewUrl(pfp).UpdateExt().UpdateExt()
