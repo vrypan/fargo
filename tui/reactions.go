@@ -25,7 +25,7 @@ func PpReactionsList(reactions *fctools.Reactions, casts *fctools.CastGroup, opt
 				" " + reactionString + " " + ppTimestamp(r.Message.Data.Timestamp) +
 				"\n│\n│─ "
 			builder.WriteString(
-				FmtCast(cast.Message, casts.Fnames, 4, true, opts),
+				FmtCast(cast.Message, casts.Fnames, 0, true, opts),
 			)
 		}
 	}
