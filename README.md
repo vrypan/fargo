@@ -29,6 +29,7 @@ Available Commands:
   get         Get Farcaster data
   help        Help about any command
   post        Submit messages to the network
+  snapshot    Create a cast/thread snapshot
   version     Get the current version
 
 Flags:
