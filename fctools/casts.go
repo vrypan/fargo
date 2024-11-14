@@ -92,7 +92,6 @@ func (grp *CastGroup) FromCastIds(hub *FarcasterHub, castIds []*pb.CastId) *Cast
 		hub = NewFarcasterHub()
 		defer hub.Close()
 	}
-
 	for _, cid := range castIds {
 		grp.AppendCast(hub, cid)
 	}

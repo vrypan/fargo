@@ -93,20 +93,44 @@ func getRun(cmd *cobra.Command, args []string) {
 			fmt.Println(s)
 		}
 	case len(parts) == 1 && parts[0] == "reactions":
-		likes := fctools.NewReactions().FromFid(hub, user.Fid, "like", countFlag)
-		casts := fctools.NewCastGroup().FromCastIds(hub, likes.CastIds()).CollectFnames(hub)
+		reactions := fctools.NewReactions().FromFid(hub, user.Fid, "like", countFlag).CollectFnames(hub)
+		casts := fctools.NewCastGroup().FromCastIds(hub, reactions.CastIds()).CollectFnames(hub)
 		if jsonFlag {
 			s, _ := casts.JsonList(jhexFlag, jdatesFlag)
 			fmt.Println(string(s))
 		} else {
-			var builder strings.Builder
-			for _, cast := range casts.Messages {
-				builder.WriteString(
-					tui.FmtCast(cast.Message, casts.Fnames, 0, true,
-						&tui.FmtCastOpts{Grep: grepFlag, Highlight: ""}),
-				)
-			}
-			fmt.Println(builder.String())
+			fmt.Println(tui.PpReactionsList(
+				reactions,
+				casts,
+				&tui.FmtCastOpts{Grep: grepFlag, Highlight: "", Width: config.GetInt("pprint.width")},
+			))
+			/*
+				var builder strings.Builder
+				for _, r := range reactions.Messages {
+					castHash := r.Message.Data.GetReactionBody().GetTargetCastId().Hash
+					cast := casts.Messages[fctools.Hash(castHash)]
+					reactionString := reactionVerb[r.Message.Data.GetReactionBody().Type.String()]
+					builder.WriteString("@" + reactions.Fnames[r.Message.Data.Fid])
+					builder.WriteString(" " + reactionString)
+
+					//builder.WriteString(r.String())
+					builder.WriteString("\n")
+					builder.WriteString(
+						tui.FmtCast(cast.Message, casts.Fnames, 0, true,
+							&tui.FmtCastOpts{Grep: grepFlag, Highlight: "", Width: config.GetInt("pprint.width")}),
+					)
+
+				}
+				for _, cast := range casts.Messages {
+
+					builder.WriteString(
+						tui.FmtCast(cast.Message, casts.Fnames, 0, true,
+							&tui.FmtCastOpts{Grep: grepFlag, Highlight: "", Width: config.GetInt("pprint.width")}),
+					)
+				}
+
+				fmt.Println(builder.String())
+			*/
 			//s := tui.PprintCastList(casts, nil, 0, grepFlag)
 			//fmt.Println(s)
 		}

@@ -3,7 +3,6 @@ package fctools
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	pb "github.com/vrypan/fargo/farcaster"
@@ -74,13 +73,12 @@ func (reactions *Reactions) FromFid(hub *FarcasterHub, fid uint64, reactionType 
 	if messages, err := hub.GetReactionsByFid(fid, reactionType, count); err == nil {
 		for _, reaction := range messages {
 			reactions.Messages = append(reactions.Messages, &Reaction{Message: reaction})
-			fmt.Printf("%s\n", reactions.Messages[len(reactions.Messages)-1])
 		}
 	}
 
 	return reactions
 }
-func (reactions *Reactions) collectFnames(hub *FarcasterHub) *Reactions {
+func (reactions *Reactions) CollectFnames(hub *FarcasterHub) *Reactions {
 	for _, msg := range reactions.Messages {
 		reactions.Fnames[msg.Message.Data.Fid], _ = hub.PrxGetUserDataStr(msg.Message.Data.Fid, "USER_DATA_TYPE_USERNAME")
 	}
@@ -89,10 +87,8 @@ func (reactions *Reactions) collectFnames(hub *FarcasterHub) *Reactions {
 func (reactions *Reactions) CastIds() []*pb.CastId {
 	ids := make([]*pb.CastId, 0, len(reactions.Messages))
 	for _, m := range reactions.Messages {
-		if m.Message.Data.GetReactionBody().Type == pb.ReactionType_REACTION_TYPE_LIKE {
-			if castId := m.Message.Data.GetReactionBody().GetTargetCastId(); castId != nil {
-				ids = append(ids, castId)
-			}
+		if castId := m.Message.Data.GetReactionBody().GetTargetCastId(); castId != nil {
+			ids = append(ids, castId)
 		}
 	}
 	return ids

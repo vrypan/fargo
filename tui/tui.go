@@ -32,8 +32,11 @@ func ppTimestamp(ts uint32) string {
 	formattedTime := timestamp.Format("2006-01-02 15:04")
 	return coloring.Faint("[" + formattedTime + "]")
 }
+func PpFname(fname string) string {
+	return coloring.Magenta("@" + fname)
+}
 func ppCastId(fname string, hash []byte) string {
-	return coloring.Magenta("@"+fname) + coloring.Faint("/"+"0x"+hex.EncodeToString(hash))
+	return PpFname(fname) + coloring.Faint("/"+"0x"+hex.EncodeToString(hash))
 }
 func ppUrl(url string) string {
 	return coloring.Green(url)
@@ -147,7 +150,12 @@ func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int, hilig
 		hash = &grp.Head
 	}
 	out := ""
-	cast := grp.Messages[*hash].Message
+	var cast *pb.Message
+	if msg, ok := grp.Messages[*hash]; ok {
+		cast = msg.Message
+	} else {
+		return ""
+	}
 	out += FormatCast(cast, grp.Fnames, padding, (padding == 0), hilightHash, grep)
 	for _, reply := range grp.Messages[*hash].Replies {
 		out += PprintThread(grp, &reply, padding+4, hilightHash, grep)
@@ -230,7 +238,11 @@ func FmtCast(
 	for n, l := range strings.Split(out, "\n") {
 		prefix := "│ "
 		if n == 0 {
-			prefix = "┌─ "
+			if opts.Prepend != "" {
+				prefix = opts.Prepend
+			} else {
+				prefix = "┌─ "
+			}
 		}
 		if boldFormatting {
 			builder.WriteString(coloring.Bold(prefix + l + "\n"))
@@ -252,6 +264,6 @@ func FmtCast(
 	} else {
 		out = builder.String()
 	}
-	out = opts.Prepend + out + opts.Append
+	out = out + opts.Append
 	return addPadding(out, padding, " ") + "\n"
 }
