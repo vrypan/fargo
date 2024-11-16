@@ -53,7 +53,7 @@ func (m *model) appendBlocks(hash *fctools.Hash, padding int) {
 		m.blocks[m.cursor] = block{
 			id:     hash.String(),
 			text:   text,
-			height: strings.Count(text, "\n") + 1,
+			height: strings.Count(text, "\n"),
 		}
 		m.cursor++
 		for _, reply := range m.casts.Messages[*hash].Replies {
@@ -118,7 +118,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
-		m.height = msg.Height
+		m.height = msg.Height - 1
 	}
 	return m, nil
 }
@@ -150,10 +150,20 @@ func (m model) View() string {
 	if m.viewEnd == 0 {
 		m.initViewport()
 	}
-	for i := m.viewStart; i <= m.viewEnd; i++ {
+	height := 0
+	var i int
+	for i = m.viewStart; i <= m.viewEnd; i++ {
 		b := m.blocks[i]
 		style := lipgloss.NewStyle().Bold(m.cursor == i)
 		s.WriteString(fmt.Sprintf("%s\n", style.Render(b.text)))
+		height += b.height + 1
+	}
+	if height < m.height && i < len(m.blocks) {
+		lines := strings.Split(m.blocks[i].text, "\n")
+		toAppend := m.height - height
+		for j := 0; j < toAppend && j < len(lines); j++ {
+			s.WriteString(fmt.Sprintf("%s\n", lines[j]))
+		}
 	}
 	s.WriteString(fmt.Sprintf("\nPress q to quit. %d %d-%d of %d", m.cursor, m.viewStart, m.viewEnd, len(m.blocks)))
 	return s.String()

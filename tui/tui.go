@@ -163,11 +163,17 @@ func PprintThread(grp *fctools.CastGroup, hash *fctools.Hash, padding int, hilig
 	return out
 }
 func PprintCastList(grp *fctools.CastGroup, hash *fctools.Hash, padding int, grep string) string {
-	out := ""
-	for _, cast := range grp.Messages {
-		out += FmtCast(cast.Message, grp.Fnames, padding, true, &FmtCastOpts{Grep: grep, Highlight: "", Width: 50})
+	out := strings.Builder{}
+	if len(grp.Ordered) > 0 {
+		for _, h := range grp.Ordered {
+			out.WriteString(FmtCast(grp.Messages[h].Message, grp.Fnames, padding, true, &FmtCastOpts{Grep: grep, Highlight: "", Width: 50}))
+		}
+	} else {
+		for _, cast := range grp.Messages {
+			out.WriteString(FmtCast(cast.Message, grp.Fnames, padding, true, &FmtCastOpts{Grep: grep, Highlight: "", Width: 50}))
+		}
 	}
-	return out
+	return out.String()
 }
 
 func FmtCast(
