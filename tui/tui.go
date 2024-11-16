@@ -234,7 +234,7 @@ func FmtCast(
 	out := builder.String()
 
 	builder.Reset()
-	boldFormatting := hex.EncodeToString(msg.Hash) == string(opts.Highlight)
+	boldFormatting := "0x"+hex.EncodeToString(msg.Hash) == string(opts.Highlight)
 	for n, l := range strings.Split(out, "\n") {
 		prefix := "│ "
 		if n == 0 {
