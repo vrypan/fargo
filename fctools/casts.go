@@ -53,10 +53,14 @@ type CastGroup struct {
 	Head     Hash
 	Messages map[Hash]*Cast
 	Fnames   map[uint64]string
+	Ordered  []Hash
 }
 
 func NewCastGroup() *CastGroup {
-	return &CastGroup{Messages: make(map[Hash]*Cast), Fnames: make(map[uint64]string)}
+	return &CastGroup{
+		Messages: make(map[Hash]*Cast),
+		Fnames:   make(map[uint64]string),
+	}
 }
 
 /*
@@ -73,11 +77,13 @@ func (grp *CastGroup) FromFid(hub *FarcasterHub, fid uint64, count uint32) *Cast
 		return grp
 	}
 
+	grp.Ordered = make([]Hash, count)
 	var hash Hash
 	//var cast *pb.Message
-	for _, cast := range messages {
+	for i, cast := range messages {
 		hash = Hash(cast.Hash[:])
 		grp.Messages[hash] = &Cast{Message: cast}
+		grp.Ordered[i] = hash
 	}
 	grp.CollectFnames(hub)
 	return grp
