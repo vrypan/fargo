@@ -60,23 +60,22 @@ func (m *model) appendBlocks(hash *fctools.Hash, padding int) {
 			m.appendBlocks(&reply, padding+4)
 		}
 	} else { // This is a list
-		i := 0
-		for hash, msg := range m.casts.Messages {
+		for i, hash := range m.casts.Ordered {
+			msg := m.casts.Messages[hash]
 			text := tui.FmtCast(msg.Message, m.casts.Fnames, padding, padding == 0, &opts)
 			m.blocks[i] = block{
 				id:     hash.String(),
 				text:   text,
 				height: strings.Count(text, "\n") + 1,
 			}
-			i++
 		}
 	}
 }
 
 func initialModel() model {
 	//hashBytes, _ := hex.DecodeString("9d899db71b97f8c92538279946d74b06b529ac8c")
-	//casts := fctools.NewCastGroup().FromCast(nil, &pb.CastId{Fid: 3, Hash: hashBytes}, true)
-	casts := fctools.NewCastGroup().FromFid(nil, 3, 100)
+	casts := fctools.NewCastGroup().FromCastFidHash(nil, 3, "8cbf9d20658bc99b91e38ae77bc5c34cc53da972", true)
+	// casts := fctools.NewCastGroup().FromFid(nil, 3, 100)
 	m := model{
 		casts:   *casts,
 		hashIdx: make([]string, len(casts.Messages)),
@@ -87,7 +86,7 @@ func initialModel() model {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.SetWindowTitle("Grocery List")
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -118,7 +117,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
-		m.height = msg.Height - 1
+		m.height = msg.Height - 2
 	}
 	return m, nil
 }
@@ -137,11 +136,12 @@ func (m *model) recalculateViewEnd() {
 func (m *model) recalculateViewStart() {
 	height := 0
 	for i := m.viewEnd; i >= 0; i-- {
-		if height+m.blocks[i].height+1 > m.height {
+		blockHeight := m.blocks[i].height + 1
+		if height+blockHeight > m.height {
 			break
 		}
 		m.viewStart = i
-		height += m.blocks[i].height + 1
+		height += blockHeight
 	}
 }
 
@@ -151,21 +151,22 @@ func (m model) View() string {
 		m.initViewport()
 	}
 	height := 0
-	var i int
-	for i = m.viewStart; i <= m.viewEnd; i++ {
-		b := m.blocks[i]
+	for i := m.viewStart; height < m.height && i < len(m.blocks); i++ {
 		style := lipgloss.NewStyle().Bold(m.cursor == i)
-		s.WriteString(fmt.Sprintf("%s\n", style.Render(b.text)))
-		height += b.height + 1
-	}
-	if height < m.height && i < len(m.blocks) {
 		lines := strings.Split(m.blocks[i].text, "\n")
-		toAppend := m.height - height
-		for j := 0; j < toAppend && j < len(lines); j++ {
-			s.WriteString(fmt.Sprintf("%s\n", lines[j]))
+		for _, line := range lines {
+			s.WriteString(fmt.Sprintf("%s\n", style.Render(line)))
+			height++
+			if height == m.height {
+				break
+			}
 		}
 	}
-	s.WriteString(fmt.Sprintf("\nPress q to quit. %d %d-%d of %d", m.cursor, m.viewStart, m.viewEnd, len(m.blocks)))
+	for ; height < m.height; height++ {
+		s.WriteString("\n")
+	}
+	s.WriteString(fmt.Sprintf("\nPress q to quit. %d %d-%d of %d. Height=%d/%d",
+		m.cursor, m.viewStart, m.viewEnd, len(m.blocks), height, m.height))
 	return s.String()
 }
 
