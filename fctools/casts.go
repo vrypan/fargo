@@ -16,20 +16,21 @@ type Cast struct {
 	Replies []Hash
 }
 
-func (c Cast) String() string {
+func (c *Cast) String() string {
 	fid := strconv.FormatUint(c.Message.Data.Fid, 10)
 	hash := "0x" + hex.EncodeToString(c.Message.Hash)
 	return fid + "/" + hash
 }
-func (c Cast) Hash() string {
+func (c *Cast) Hash() string {
 	return "0x" + hex.EncodeToString(c.Message.Hash)
 }
-func (c Cast) Fid() string {
+func (c *Cast) Fid() string {
 	return strconv.FormatUint(c.Message.Data.Fid, 10)
 }
-func (c Cast) Text() string {
+func (c *Cast) Text() string {
 	return c.Message.Data.GetCastAddBody().Text
 }
+
 func (c Cast) Json(hexHashes bool, realTimestamps bool) ([]byte, error) {
 	//data := interface
 	var jsonData interface{}

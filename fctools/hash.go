@@ -14,3 +14,7 @@ func (h Hash) IsZero() bool {
 	zeroHash := Hash{}
 	return h == zeroHash
 }
+
+func (h Hash) Bytes() []byte {
+	return h[:]
+}
