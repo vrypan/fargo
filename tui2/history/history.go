@@ -1,6 +1,10 @@
 package history
 
-import "errors"
+import (
+	"encoding/hex"
+	"errors"
+	"fmt"
+)
 
 var (
 	EMPTY_HISTORY = errors.New("History is empty")
@@ -17,9 +21,14 @@ const (
 )
 
 type Path struct {
-	Type PathType
-	Fid  uint64
-	Hash []byte
+	Type   PathType
+	Fid    uint64
+	Hash   []byte
+	Cursor int
+}
+
+func (p Path) String() string {
+	return fmt.Sprintf("%d / %d/%s", p.Type, p.Fid, "0x"+hex.EncodeToString(p.Hash))
 }
 
 type History struct {
@@ -53,12 +62,16 @@ func (h *History) Push(path Path) {
 }
 
 func (h *History) Pop() (Path, error) {
-	if len(h.paths) == 0 {
+	if len(h.paths) <= 1 {
 		return Path{}, EMPTY_HISTORY
 	}
 	path := h.paths[len(h.paths)-1]
 	h.paths = h.paths[:len(h.paths)-1]
 	return path, nil
+}
+
+func (h *History) SetCursor(cursor int) {
+	h.paths[len(h.paths)-1].Cursor = cursor
 }
 
 func (h *History) Peek() (Path, error) {
