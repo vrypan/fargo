@@ -31,3 +31,5 @@ dist/
 /fargo
 
 .DS_Store
+tmp/
+vhs/
