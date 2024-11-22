@@ -29,6 +29,7 @@ type CastsModel struct {
 	hashIdx     []fctools.Hash
 	focus       bool
 	activeField int
+	resultsNum  uint32
 }
 
 func NewCastsModel() *CastsModel {
@@ -36,6 +37,9 @@ func NewCastsModel() *CastsModel {
 	return &CastsModel{}
 }
 
+func (m *CastsModel) SetResultsCount(count uint32) {
+	m.resultsNum = count
+}
 func (m *CastsModel) LoadCasts(fid uint64, hash []byte) *CastsModel {
 	casts := fctools.NewCastGroup().FromCast(nil, &farcaster.CastId{Fid: fid, Hash: hash}, true)
 	m.focus = false
@@ -51,7 +55,7 @@ func (m *CastsModel) LoadCasts(fid uint64, hash []byte) *CastsModel {
 	return m
 }
 func (m *CastsModel) LoadFid(fid uint64) *CastsModel {
-	casts := fctools.NewCastGroup().FromFid(nil, fid, 50)
+	casts := fctools.NewCastGroup().FromFid(nil, fid, m.resultsNum)
 	m.focus = false
 	m.activeField = 0
 	m.casts = *casts
@@ -256,9 +260,12 @@ func (m *CastsModel) Status() (int, uint64, []byte) {
 	return m.cursor, fid, hash.Bytes()
 }
 
-func (m *CastsModel) SetFocus(onoff bool) {
+func (m *CastsModel) SetFocus(onoff bool, idx int) {
 	m.focus = onoff
 	m.activeField = 0
+	if onoff {
+		m.cursor = idx
+	}
 }
 
 func (m *CastsModel) GetItemInFocus() string {

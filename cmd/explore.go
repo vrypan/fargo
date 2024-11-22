@@ -10,6 +10,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
+	"github.com/vrypan/fargo/config"
 	db "github.com/vrypan/fargo/localdb"
 	"github.com/vrypan/fargo/tui2"
 	"github.com/vrypan/fargo/tui2/history"
@@ -17,33 +18,45 @@ import (
 
 var DEBUG string
 
-var tuiCmd = &cobra.Command{
-	Use:   "tui",
+var exploreCmd = &cobra.Command{
+	Use:   "explore",
 	Short: "A brief description of your command",
-	Run:   tuiRun,
+	Run:   exploreRun,
 }
 
-func tuiRun(cmd *cobra.Command, args []string) {
+func exploreRun(cmd *cobra.Command, args []string) {
+	countFlag := uint32(config.GetInt("get.count"))
+
 	db.Open()
 	defer db.Close()
-	t := NewTuiModel()
-
-	t.casts.LoadFid(280)
-	t.history.Push(history.Path{
-		Type: history.TYPE_LIST,
-		Fid:  280,
-	})
-	p := tea.NewProgram(t)
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
+	user, parts := parse_url(args)
+	if user == nil {
+		log.Fatal("User not found")
 	}
-	fmt.Println(t.history)
+	if c, _ := cmd.Flags().GetInt("count"); c > 0 {
+		countFlag = uint32(c)
+	}
+	t := NewTuiModel()
+	t.casts.SetResultsCount(countFlag)
 
+	switch {
+	case len(parts) == 1 && parts[0] == "casts":
+		t.casts.LoadFid(user.Fid)
+		t.history.Push(history.Path{
+			Type: history.TYPE_LIST,
+			Fid:  280,
+		})
+		p := tea.NewProgram(t)
+		if _, err := p.Run(); err != nil {
+			fmt.Printf("Alas, there's been an error: %v", err)
+			os.Exit(1)
+		}
+	}
 }
 
 func init() {
-	rootCmd.AddCommand(tuiCmd)
+	rootCmd.AddCommand(exploreCmd)
+	exploreCmd.Flags().IntP("count", "c", 0, "Number of casts to show when getting @user/casts")
 }
 
 type tuiModel struct {
@@ -56,40 +69,38 @@ type tuiModel struct {
 
 func NewTuiModel() *tuiModel {
 	statusText := "↑/↓/←/→ navigate • q quit"
-	m := tuiModel{
+	m := &tuiModel{
 		casts:     tui2.NewCastsModel(),
 		cast:      tui2.NewCastModel(),
 		history:   history.New(1024),
 		statusBar: tui2.NewStatusBar().SetText(statusText).SetHeight(1),
 	}
-	return &m
+	return m
 }
 
-func (t tuiModel) Init() tea.Cmd {
+func (t *tuiModel) Init() tea.Cmd {
 	return nil
 }
 
-func (t tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+func (t *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	current, err := t.history.Peek()
 	if err != nil {
 		log.Fatal(err)
 	}
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	handleKeyMsg := func(msg tea.KeyMsg) {
 		switch current.Type {
 		case history.TYPE_LIST, history.TYPE_THREAD:
 			switch msg.String() {
 			case "ctrl+c", "q":
-				return t, tea.Quit
+				cmds = append(cmds, tea.Quit)
 			case "up", "k", "down", "j":
-				_, cmd = t.casts.Update(msg)
+				_, cmd := t.casts.Update(msg)
 				cmds = append(cmds, cmd)
 			case "enter", "right", "l":
 				cursor, fid, hash := t.casts.Status()
 				if current.Type == history.TYPE_LIST {
-					cmd = func() tea.Msg {
+					cmd := func() tea.Msg {
 						t.statusBar.SetStatus("Loading...")
 						t.casts.LoadCasts(fid, hash)
 						t.history.SetCursor(cursor)
@@ -101,44 +112,45 @@ func (t tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return t.statusBar.SetStatus("")
 					}
 					cmds = append(cmds, cmd)
-				}
-				if current.Type == history.TYPE_THREAD {
+				} else if current.Type == history.TYPE_THREAD {
 					t.history.SetCursor(cursor)
 					t.history.Push(history.Path{
 						Type: history.TYPE_CAST,
 						Fid:  fid,
 						Hash: hash,
 					})
-					t.casts.SetFocus(true)
+					t.casts.SetFocus(true, cursor)
 				}
 			case "left", "h":
-				_, err := t.history.Pop() // Pop the current status
-				prev, err := t.history.Peek()
-				if err != nil {
-					return t, nil
+				if _, err := t.history.Pop(); err == nil {
+					if prev, err := t.history.Peek(); err == nil {
+						switch prev.Type {
+						case history.TYPE_LIST:
+							t.casts.LoadFid(prev.Fid)
+						case history.TYPE_THREAD:
+							t.casts.LoadCasts(prev.Fid, prev.Hash)
+						case history.TYPE_CAST:
+							t.casts.LoadCasts(prev.Fid, prev.Hash)
+							t.casts.SetFocus(true, prev.Cursor)
+						}
+						t.cursor = prev.Cursor
+					}
 				}
-				switch prev.Type {
-				case history.TYPE_LIST:
-					t.casts.LoadFid(prev.Fid)
-				case history.TYPE_THREAD:
-					t.casts.LoadCasts(prev.Fid, prev.Hash)
-				}
-				t.cursor = prev.Cursor
 			}
 		case history.TYPE_CAST:
 			switch msg.String() {
 			case "esc", "q":
-				return t, tea.Quit
+				cmds = append(cmds, tea.Quit)
 			case "enter":
 				action := t.casts.GetItemInFocus()
 				if action == "" {
-					return t, nil
+					return
 				}
 				switch action[0:3] {
 				case "fid":
 					nextFid, _ := strconv.ParseUint(action[4:], 10, 64)
 					cursor, _, _ := t.casts.Status()
-					cmd = func() tea.Msg {
+					cmd := func() tea.Msg {
 						t.statusBar.SetStatus("Loading...")
 						t.history.SetCursor(cursor)
 						t.casts.LoadFid(nextFid)
@@ -154,7 +166,7 @@ func (t tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					nextFid, _ := strconv.ParseUint(parts[1], 10, 64)
 					nextHash, _ := hex.DecodeString(parts[2])
 					cursor, fid, hash := t.casts.Status()
-					cmd = func() tea.Msg {
+					cmd := func() tea.Msg {
 						t.statusBar.SetStatus("Loading...")
 						t.casts.LoadCasts(nextFid, nextHash)
 						t.history.SetCursor(cursor)
@@ -166,41 +178,51 @@ func (t tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return t.statusBar.SetStatus("")
 					}
 					cmds = append(cmds, cmd)
-				case "url":
 				}
 			case "left":
-				t.history.Pop()
-				prev, err := t.history.Peek()
-				if err != nil {
-					return t, nil
+				if _, err := t.history.Pop(); err == nil {
+					if prev, err := t.history.Peek(); err == nil {
+						if prev.Hash == nil {
+							cmd := func() tea.Msg {
+								t.statusBar.SetStatus("Loading...")
+								t.casts.LoadFid(prev.Fid)
+								return t.statusBar.SetStatus("")
+							}
+							cmds = append(cmds, cmd)
+						} else {
+							cmd := func() tea.Msg {
+								t.statusBar.SetStatus("Loading...")
+								t.casts.LoadCasts(prev.Fid, prev.Hash)
+								return t.statusBar.SetStatus("")
+							}
+							cmds = append(cmds, cmd)
+						}
+						t.casts.SetFocus(false, 0)
+						t.cursor = prev.Cursor
+					}
 				}
-				if prev.Hash == nil {
-					t.casts.LoadFid(prev.Fid)
-				} else {
-					t.casts.LoadCasts(prev.Fid, prev.Hash)
-				}
-				t.casts.SetFocus(false)
-				t.cursor = prev.Cursor
-				// _, cmd = t.casts.Update(msg)
-				//cmds = append(cmds, cmd)
 			default:
-				_, cmd = t.casts.Update(msg)
+				_, cmd := t.casts.Update(msg)
 				cmds = append(cmds, cmd)
 			}
 		}
-
+	}
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		handleKeyMsg(msg)
 	case tea.WindowSizeMsg:
-		_, cmd := t.casts.Update(tea.WindowSizeMsg{Width: msg.Width, Height: msg.Height - t.statusBar.Height()})
-		cmds = append(cmds, cmd)
-		_, cmd = t.cast.Update(tea.WindowSizeMsg{Width: msg.Width, Height: msg.Height - t.statusBar.Height()})
-		cmds = append(cmds, cmd)
-		_, cmd = t.statusBar.Update(msg)
-		cmds = append(cmds, cmd)
+		adjustSize := func(model tea.Model, h int) {
+			_, cmd := (model).Update(tea.WindowSizeMsg{Width: msg.Width, Height: msg.Height - h})
+			cmds = append(cmds, cmd)
+		}
+		h := t.statusBar.Height()
+		adjustSize(t.casts, h)
+		adjustSize(t.statusBar, 0)
 	}
 	return t, tea.Batch(cmds...)
 }
 
-func (t tuiModel) View() string {
+func (t *tuiModel) View() string {
 	current, _ := t.history.Peek()
 	var output strings.Builder
 	switch current.Type {
