@@ -45,7 +45,7 @@ func exploreRun(cmd *cobra.Command, args []string) {
 		t.casts.LoadFid(user.Fid)
 		t.history.Push(history.Path{
 			Type: history.TYPE_LIST,
-			Fid:  280,
+			Fid:  user.Fid,
 		})
 		p := tea.NewProgram(t)
 		if _, err := p.Run(); err != nil {
