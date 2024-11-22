@@ -2,6 +2,7 @@ package tui2
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,14 +19,16 @@ type castsBlock struct {
 }
 
 type CastsModel struct {
-	cursor    int
-	casts     fctools.CastGroup
-	width     int
-	height    int
-	blocks    []castsBlock
-	viewStart int
-	viewEnd   int
-	hashIdx   []fctools.Hash
+	cursor      int
+	casts       fctools.CastGroup
+	width       int
+	height      int
+	blocks      []castsBlock
+	viewStart   int
+	viewEnd     int
+	hashIdx     []fctools.Hash
+	focus       bool
+	activeField int
 }
 
 func NewCastsModel() *CastsModel {
@@ -35,6 +38,8 @@ func NewCastsModel() *CastsModel {
 
 func (m *CastsModel) LoadCasts(fid uint64, hash []byte) *CastsModel {
 	casts := fctools.NewCastGroup().FromCast(nil, &farcaster.CastId{Fid: fid, Hash: hash}, true)
+	m.focus = false
+	m.activeField = 0
 	m.casts = *casts
 	m.blocks = make([]castsBlock, len(casts.Messages))
 	m.hashIdx = make([]fctools.Hash, len(casts.Messages))
@@ -42,10 +47,13 @@ func (m *CastsModel) LoadCasts(fid uint64, hash []byte) *CastsModel {
 	m.viewStart = 0
 	m.viewEnd = 0
 	m.appendBlocks(nil, 0)
+	m.cursor = 0
 	return m
 }
 func (m *CastsModel) LoadFid(fid uint64) *CastsModel {
 	casts := fctools.NewCastGroup().FromFid(nil, fid, 50)
+	m.focus = false
+	m.activeField = 0
 	m.casts = *casts
 	m.blocks = make([]castsBlock, len(casts.Messages))
 	m.hashIdx = make([]fctools.Hash, len(casts.Messages))
@@ -53,6 +61,7 @@ func (m *CastsModel) LoadFid(fid uint64) *CastsModel {
 	m.viewStart = 0
 	m.viewEnd = 0
 	m.appendBlocks(nil, 0)
+	m.cursor = 0
 	return m
 }
 
@@ -86,24 +95,26 @@ func (m *CastsModel) appendBlocks(hash *fctools.Hash, padding int) {
 }
 
 func (m *CastsModel) handleThreadBlocks(hash *fctools.Hash, padding int, opts tui.FmtCastOpts) {
-	text := tui.FmtCast(m.casts.Messages[*hash].Message, m.casts.Fnames, padding, padding == 0, &opts)
+	m.hashIdx[m.cursor] = *hash
+	text := m.fmtCast(m.cursor, padding)
+	//text := tui.FmtCast(m.casts.Messages[*hash].Message, m.casts.Fnames, padding, padding == 0, &opts)
 	m.blocks[m.cursor] = castsBlock{
 		id:     hash.String(),
 		text:   text,
 		height: strings.Count(text, "\n") + 1,
 	}
-	m.hashIdx[m.cursor] = *hash
+
 	m.cursor++
 	for _, reply := range m.casts.Messages[*hash].Replies {
-		m.appendBlocks(&reply, padding+4)
+		m.handleThreadBlocks(&reply, padding+4, opts)
 	}
 }
 
 func (m *CastsModel) handleListBlocks(padding int, opts tui.FmtCastOpts) {
 	for i, hash := range m.casts.Ordered {
-		msg := m.casts.Messages[hash]
-		text := tui.FmtCast(msg.Message, m.casts.Fnames, padding, padding == 0, &opts)
 		m.hashIdx[i] = hash
+		text := m.fmtCast(i, padding)
+
 		m.blocks[i] = castsBlock{
 			id:     hash.String(),
 			text:   text,
@@ -115,21 +126,30 @@ func (m *CastsModel) handleListBlocks(padding int, opts tui.FmtCastOpts) {
 func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		case "up", "k":
-			m.moveCursorUp()
-		case "down", "j":
-			m.moveCursorDown()
-			/*
-				case "enter":
-					hash := m.hashIdx[m.cursor]
-					fid := m.casts.Messages[hash].Message.Data.Fid
-					m.LoadCasts(fid, hash.Bytes())
-			*/
+		switch m.focus {
+		case false:
+			switch msg.String() {
+			case "ctrl+c", "q":
+				return m, tea.Quit
+			case "up", "k":
+				m.moveCursorUp()
+			case "down", "j":
+				m.moveCursorDown()
+			case "enter", "right", "l":
+				m.focus = true
+			}
+		case true:
+			switch msg.String() {
+			case "ctrl+c", "q":
+				return m, tea.Quit
+			case "up", "k":
+				if m.activeField > 0 {
+					m.activeField--
+				}
+			case "down", "j":
+				m.activeField++
+			}
 		}
-
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -182,6 +202,22 @@ func (m *CastsModel) recalculateViewStart() {
 }
 
 func (m *CastsModel) View() string {
+	switch m.focus {
+	case false:
+		return m.ViewAll()
+	case true:
+		return m.ViewOne()
+	}
+	return "Unexpected"
+}
+
+func (m *CastsModel) ViewOne() string {
+	out := m.fmtCast(m.cursor, 2)
+	height := strings.Count(out, "\n")
+	return out + strings.Repeat("\n", m.height-height)
+}
+
+func (m *CastsModel) ViewAll() string {
 	var s strings.Builder
 	if m.viewEnd == 0 {
 		m.initViewport()
@@ -190,8 +226,8 @@ func (m *CastsModel) View() string {
 	for i := m.viewStart; height < m.height && i < len(m.blocks); i++ {
 		style := lipgloss.NewStyle().Bold(m.cursor == i)
 		if height+m.blocks[i].height+1 < m.height {
-			s.WriteString(fmt.Sprintf("%s\n", style.Render(m.blocks[i].text)))
-			height += m.blocks[i].height
+			s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
+			height += m.blocks[i].height + 1
 		} else {
 			lines := strings.Split(m.blocks[i].text, "\n")
 			for _, line := range lines {
@@ -209,8 +245,40 @@ func (m *CastsModel) View() string {
 	return s.String()
 }
 
+func (m *CastsModel) GetCast(cursor int) *fctools.Cast {
+	msg := m.casts.Messages[m.hashIdx[m.cursor]]
+	return msg
+}
+
 func (m *CastsModel) Status() (int, uint64, []byte) {
 	hash := m.hashIdx[m.cursor]
 	fid := m.casts.Messages[hash].Message.Data.Fid
 	return m.cursor, fid, hash.Bytes()
+}
+
+func (m *CastsModel) SetFocus(onoff bool) {
+	m.focus = onoff
+	m.activeField = 0
+}
+
+func (m *CastsModel) GetItemInFocus() string {
+	castHash := m.hashIdx[m.cursor]
+	message := m.casts.Messages[castHash].Message
+	itemCount := 1 + len(message.GetData().GetCastAddBody().Mentions) + len(message.GetData().GetCastAddBody().Embeds)
+	items := make([]string, itemCount+1)
+	i := 1
+	items[i] = "fid:" + strconv.FormatUint(message.Data.Fid, 10)
+	for _, fid := range message.GetData().GetCastAddBody().Mentions {
+		i++
+		items[i] = "fid:" + strconv.FormatUint(fid, 10)
+	}
+	for _, embed := range message.GetData().GetCastAddBody().Embeds {
+		i++
+		if embed.GetCastId() != nil {
+			items[i] = fmt.Sprintf("cst:%d:%x", embed.GetCastId().Fid, embed.GetCastId().Hash)
+		} else {
+			items[i] = fmt.Sprintf("url:%s", embed.GetUrl())
+		}
+	}
+	return items[m.activeField]
 }

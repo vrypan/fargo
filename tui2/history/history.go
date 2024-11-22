@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -40,6 +41,15 @@ func New(maxLen int) *History {
 	return &History{maxLen: maxLen}
 }
 
+func (h *History) String() string {
+	var buf strings.Builder
+	for i, p := range h.paths {
+		buf.WriteString(
+			fmt.Sprintf("%d. %d %d/0x%x\n", i, p.Type, p.Fid, p.Hash),
+		)
+	}
+	return buf.String()
+}
 func (h *History) Len() int {
 	return len(h.paths)
 }

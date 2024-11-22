@@ -2,9 +2,9 @@ package tui2
 
 import (
 	"fmt"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/vrypan/fargo/fctools"
 )
 
@@ -19,26 +19,28 @@ const (
 	EmbedUrl2
 )
 
-type castModel struct {
+type CastModel struct {
 	cast        *fctools.Cast
 	activeField Field
+	width       int
+	height      int
 }
 
-func NewCastModel() *castModel {
-	m := castModel{}
+func NewCastModel() *CastModel {
+	m := CastModel{}
 	return &m
 }
 
-func (m *castModel) SetCast(cast *fctools.Cast) *castModel {
+func (m *CastModel) SetCast(cast *fctools.Cast) *CastModel {
 	m.cast = cast
 	return m
 }
 
-func (m *castModel) Init() tea.Cmd {
+func (m *CastModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *castModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *CastModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -49,13 +51,20 @@ func (m *castModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "down", "j":
 			return m, tea.Quit
 		}
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 	}
 	return m, nil
 }
 
-func (m *castModel) View() string {
-	var s strings.Builder
+func (m *CastModel) View() string {
+	mainColor := lipgloss.AdaptiveColor{Light: "#333", Dark: "#aaa"}
+	//strongColor := lipgloss.AdaptiveColor{Light: "#000", Dark: "#fff"}
+	var style = lipgloss.NewStyle().
+		Foreground(mainColor).
+		PaddingLeft(1).
+		Width(m.width).Height(m.height).AlignVertical(lipgloss.Top)
 
-	s.WriteString(fmt.Sprintf("%s/0x%s", m.cast.Fid(), m.cast.Hash()))
-	return s.String()
+	return style.Render(fmt.Sprintf("%s/0x%s\n", m.cast.Fid(), m.cast.Hash()))
 }
