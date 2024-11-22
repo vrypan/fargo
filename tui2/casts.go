@@ -94,7 +94,7 @@ func (m *CastsModel) appendBlocks(hash *fctools.Hash, padding int) {
 	if hash != nil { // This is a thread
 		m.handleThreadBlocks(hash, padding, opts)
 	} else {
-		m.handleListBlocks(padding, opts)
+		m.handleListBlocks(padding)
 	}
 }
 
@@ -114,7 +114,7 @@ func (m *CastsModel) handleThreadBlocks(hash *fctools.Hash, padding int, opts tu
 	}
 }
 
-func (m *CastsModel) handleListBlocks(padding int, opts tui.FmtCastOpts) {
+func (m *CastsModel) handleListBlocks(padding int) {
 	for i, hash := range m.casts.Ordered {
 		m.hashIdx[i] = hash
 		text := m.fmtCast(i, padding)

@@ -19,9 +19,12 @@ import (
 var DEBUG string
 
 var exploreCmd = &cobra.Command{
-	Use:   "explore",
-	Short: "A brief description of your command",
-	Run:   exploreRun,
+	Use:   "explore [@username]/casts",
+	Short: "Interactive Farcaster explorer",
+	Long: `It only supports "@username/casts" for now.
+Ex.: fargo explore @dwr/casts
+`,
+	Run: exploreRun,
 }
 
 func exploreRun(cmd *cobra.Command, args []string) {
