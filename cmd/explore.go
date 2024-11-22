@@ -16,8 +16,6 @@ import (
 	"github.com/vrypan/fargo/tui2/history"
 )
 
-var DEBUG string
-
 var exploreCmd = &cobra.Command{
 	Use:   "explore [@username]/casts",
 	Short: "Interactive Farcaster explorer",
@@ -64,7 +62,6 @@ func init() {
 
 type tuiModel struct {
 	casts     *tui2.CastsModel
-	cast      *tui2.CastModel
 	cursor    int
 	history   *history.History
 	statusBar *tui2.StatusBar
@@ -74,7 +71,6 @@ func NewTuiModel() *tuiModel {
 	statusText := "↑/↓/←/→ navigate • q quit"
 	m := &tuiModel{
 		casts:     tui2.NewCastsModel(),
-		cast:      tui2.NewCastModel(),
 		history:   history.New(1024),
 		statusBar: tui2.NewStatusBar().SetText(statusText).SetHeight(1),
 	}

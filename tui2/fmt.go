@@ -25,15 +25,12 @@ var myCuteBorder = gloss.Border{
 }
 
 func tsToDate(ts uint32) string {
-	timestamp := time.Unix(int64(ts)+FARCASTER_EPOCH, 0)
-	return timestamp.Format("2006-01-02 15:04")
+	return time.Unix(int64(ts)+FARCASTER_EPOCH, 0).Format("2006-01-02 15:04")
 }
 
 func selected(s gloss.Style, flag bool) gloss.Style {
 	if flag {
-		return gloss.NewStyle().
-			Foreground(gloss.Color("#000")).
-			Background(s.GetForeground())
+		return s.Foreground(gloss.Color("#000")).Background(s.GetForeground())
 	}
 	return s
 }

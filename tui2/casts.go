@@ -33,29 +33,24 @@ type CastsModel struct {
 }
 
 func NewCastsModel() *CastsModel {
-	// test vals 3, "8cbf9d20658bc99b91e38ae77bc5c34cc53da972"
 	return &CastsModel{}
 }
 
 func (m *CastsModel) SetResultsCount(count uint32) {
 	m.resultsNum = count
 }
+
 func (m *CastsModel) LoadCasts(fid uint64, hash []byte) *CastsModel {
-	casts := fctools.NewCastGroup().FromCast(nil, &farcaster.CastId{Fid: fid, Hash: hash}, true)
-	m.focus = false
-	m.activeField = 0
-	m.casts = *casts
-	m.blocks = make([]castsBlock, len(casts.Messages))
-	m.hashIdx = make([]fctools.Hash, len(casts.Messages))
-	m.cursor = 0
-	m.viewStart = 0
-	m.viewEnd = 0
-	m.appendBlocks(nil, 0)
-	m.cursor = 0
+	m.prepareCasts(fctools.NewCastGroup().FromCast(nil, &farcaster.CastId{Fid: fid, Hash: hash}, true))
 	return m
 }
+
 func (m *CastsModel) LoadFid(fid uint64) *CastsModel {
-	casts := fctools.NewCastGroup().FromFid(nil, fid, m.resultsNum)
+	m.prepareCasts(fctools.NewCastGroup().FromFid(nil, fid, m.resultsNum))
+	return m
+}
+
+func (m *CastsModel) prepareCasts(casts *fctools.CastGroup) {
 	m.focus = false
 	m.activeField = 0
 	m.casts = *casts
@@ -66,7 +61,6 @@ func (m *CastsModel) LoadFid(fid uint64) *CastsModel {
 	m.viewEnd = 0
 	m.appendBlocks(nil, 0)
 	m.cursor = 0
-	return m
 }
 
 func (m *CastsModel) Init() tea.Cmd {
@@ -91,7 +85,7 @@ func (m *CastsModel) appendBlocks(hash *fctools.Hash, padding int) {
 	if hash == nil && m.casts.Head != (fctools.Hash{}) {
 		hash = &m.casts.Head
 	}
-	if hash != nil { // This is a thread
+	if hash != nil {
 		m.handleThreadBlocks(hash, padding, opts)
 	} else {
 		m.handleListBlocks(padding)
@@ -101,7 +95,6 @@ func (m *CastsModel) appendBlocks(hash *fctools.Hash, padding int) {
 func (m *CastsModel) handleThreadBlocks(hash *fctools.Hash, padding int, opts tui.FmtCastOpts) {
 	m.hashIdx[m.cursor] = *hash
 	text := m.fmtCast(m.cursor, padding)
-	//text := tui.FmtCast(m.casts.Messages[*hash].Message, m.casts.Fnames, padding, padding == 0, &opts)
 	m.blocks[m.cursor] = castsBlock{
 		id:     hash.String(),
 		text:   text,
@@ -206,13 +199,10 @@ func (m *CastsModel) recalculateViewStart() {
 }
 
 func (m *CastsModel) View() string {
-	switch m.focus {
-	case false:
-		return m.ViewAll()
-	case true:
+	if m.focus {
 		return m.ViewOne()
 	}
-	return "Unexpected"
+	return m.ViewAll()
 }
 
 func (m *CastsModel) ViewOne() string {
@@ -244,14 +234,11 @@ func (m *CastsModel) ViewAll() string {
 		}
 	}
 	s.WriteString(strings.Repeat("\n", m.height-height))
-	//s.WriteString(fmt.Sprintf("\nPress q to quit. %d %d-%d of %d. Height=%d/%d",
-	//	m.cursor, m.viewStart, m.viewEnd, len(m.blocks), height, m.height))
 	return s.String()
 }
 
 func (m *CastsModel) GetCast(cursor int) *fctools.Cast {
-	msg := m.casts.Messages[m.hashIdx[m.cursor]]
-	return msg
+	return m.casts.Messages[m.hashIdx[m.cursor]]
 }
 
 func (m *CastsModel) Status() (int, uint64, []byte) {
