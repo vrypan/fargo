@@ -78,7 +78,7 @@ func (grp *CastGroup) FromFid(hub *FarcasterHub, fid uint64, count uint32) *Cast
 		return grp
 	}
 
-	grp.Ordered = make([]Hash, count)
+	grp.Ordered = make([]Hash, len(messages))
 	var hash Hash
 	//var cast *pb.Message
 	for i, cast := range messages {
