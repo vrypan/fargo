@@ -24,6 +24,9 @@ func (s *StatusBar) SetStatus(status string) *StatusBar {
 	s.status = status
 	return s
 }
+func (s *StatusBar) GetStatus() string {
+	return s.status
+}
 func (s *StatusBar) SetHeight(h int) *StatusBar {
 	s.height = h + 1
 	return s
@@ -53,7 +56,6 @@ func (s *StatusBar) View() string {
 		Foreground(mainColor).
 		PaddingLeft(1).
 		Width(s.width).Height(2).AlignVertical(lipgloss.Top).
-		//BorderStyle(lipgloss.NormalBorder()).
 		Border(lipgloss.NormalBorder(), true, false, false, false).
 		BorderForeground(mainColor)
 	statusText := ""

@@ -13,16 +13,29 @@ var rootCmd = &cobra.Command{
 	Short: "A command line tool to interact with Farcaster",
 }
 
+var DEBUG = 0
+
 func Execute() {
-	log.SetFlags(0)
+	if DEBUG != 0 {
+		logFile, err := os.OpenFile("fargo.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalf("failed to open log file: %v", err)
+		}
+		defer logFile.Close()
+		log.SetOutput(logFile)
+	} else {
+		log.SetFlags(0)
+	}
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	config.Load()
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		if cmd.Name() != "set" {
 			warnHoyt()
 		}
 	}
-	err := rootCmd.Execute()
-	if err != nil {
+	err2 := rootCmd.Execute()
+	if err2 != nil {
 		os.Exit(1)
 	}
 }
