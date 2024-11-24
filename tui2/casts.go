@@ -3,14 +3,12 @@ package tui2
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/vrypan/fargo/farcaster"
 	"github.com/vrypan/fargo/fctools"
-	"github.com/vrypan/fargo/tui"
 )
 
 type UpdateStatusBar struct {
@@ -64,29 +62,23 @@ func (m *CastsModel) SetResultsCount(count uint32) {
 }
 
 func (m *CastsModel) LoadCasts(fid uint64, hash []byte) *CastsModel {
-	cmd := func() tea.Msg { m.statusBar.SetStatus("Loading..."); return nil }
-	m.Update(cmd)
-	m.prepareCasts(fctools.NewCastGroup().FromCast(nil, &farcaster.CastId{Fid: fid, Hash: hash}, true))
-	cmd = func() tea.Msg { m.statusBar.SetStatus(""); return nil }
-	m.Update(cmd)
+	m.prepareModel(fctools.NewCastGroup().FromCast(nil, &farcaster.CastId{Fid: fid, Hash: hash}, true))
 	return m
 }
 
 func (m *CastsModel) LoadFid(fid uint64) *CastsModel {
-	m.statusBar.SetStatus("Loading...")
-	m.prepareCasts(fctools.NewCastGroup().FromFid(nil, fid, m.resultsNum))
-	m.statusBar.SetStatus("")
+	m.prepareModel(fctools.NewCastGroup().FromFid(nil, fid, m.resultsNum))
 	return m
 }
 
-func (m *CastsModel) prepareCasts(casts *fctools.CastGroup) {
+func (m *CastsModel) prepareModel(casts *fctools.CastGroup) {
 	m.focus = false
 	m.activeField = 0
 	m.casts = *casts
 	m.blocks = make([]castsBlock, len(casts.Messages))
 	m.hashIdx = make([]fctools.Hash, len(casts.Messages))
 	m.cursor = 0
-	m.appendBlocks(nil, 0)
+	m.renderBlocks(nil, 0)
 	m.cursor = 0
 	m.viewStart = 0
 	m.viewEnd = 0
@@ -109,46 +101,6 @@ func (m *CastsModel) initViewport() {
 	}
 }
 
-func (m *CastsModel) appendBlocks(hash *fctools.Hash, padding int) {
-	opts := tui.FmtCastOpts{Width: 80}
-	if hash == nil && m.casts.Head != (fctools.Hash{}) {
-		hash = &m.casts.Head
-	}
-	if hash != nil {
-		m.handleThreadBlocks(hash, padding, opts)
-	} else {
-		m.handleListBlocks(padding)
-	}
-}
-
-func (m *CastsModel) handleThreadBlocks(hash *fctools.Hash, padding int, opts tui.FmtCastOpts) {
-	idx := m.cursor
-	m.hashIdx[idx] = *hash
-	text := m.fmtCast(idx, padding)
-	m.blocks[idx] = castsBlock{
-		id:     hash.String(),
-		text:   text,
-		height: strings.Count(text, "\n") + 1,
-	}
-	m.cursor++
-	for _, reply := range m.casts.Messages[*hash].Replies {
-		m.handleThreadBlocks(&reply, padding+4, opts)
-	}
-}
-
-func (m *CastsModel) handleListBlocks(padding int) {
-	for i, hash := range m.casts.Ordered {
-		m.hashIdx[i] = hash
-		text := m.fmtCast(i, padding)
-
-		m.blocks[i] = castsBlock{
-			id:     hash.String(),
-			text:   text,
-			height: strings.Count(text, "\n") + 1,
-		}
-	}
-}
-
 func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	log.Println(msg, m.cursor, m.focus)
 	switch msg := msg.(type) {
@@ -157,12 +109,9 @@ func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			"ctrl+c": func() { m.Quit() },
 			"q":      func() { m.Quit() },
 			"up":     m.moveCursorUp,
-			"k":      m.moveCursorUp,
 			"down":   m.moveCursorDown,
-			"j":      m.moveCursorDown,
 			"enter":  func() { m.focus = true },
 			"right":  func() { m.focus = true },
-			"l":      func() { m.focus = true },
 		}
 
 		activeKeys := map[string]func(){
@@ -173,13 +122,8 @@ func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.activeField--
 				}
 			},
-			"k": func() {
-				if m.activeField > 0 {
-					m.activeField--
-				}
-			},
 			"down": func() { m.activeField++ },
-			"j":    func() { m.activeField++ },
+			"left": func() { m.focus = false },
 		}
 
 		if m.focus {
@@ -257,56 +201,34 @@ func (m *CastsModel) WindowHeight() int {
 }
 
 func (m *CastsModel) View() string {
-	ret := ""
-	if m.focus {
-		ret += m.ViewOne()
-	} else {
-		ret += m.ViewAll()
-	}
+	ret := m.ViewCasts()
 	ret += m.statusBar.View()
 	return ret
 }
 
-func (m *CastsModel) ViewOne() string {
+func (m *CastsModel) ViewCasts() string {
 	var s strings.Builder
 	if m.viewEnd == 0 {
 		m.initViewport()
 	}
 	height := 0
-	styleActive := lipgloss.NewStyle().Bold(true).BorderForeground(lipgloss.Color("#00aa00"))
-	styleInactive := lipgloss.NewStyle().Faint(true)
+	activeStyle := lipgloss.NewStyle().Bold(true).BorderForeground(lipgloss.Color("#00aa00"))
+	inactiveStyle := lipgloss.NewStyle().Faint(true)
 	for i := m.viewStart; height < m.WindowHeight() && i < len(m.blocks); i++ {
-		if height+m.blocks[i].height+1 < m.WindowHeight() {
-			if i == m.cursor {
-				s.WriteString(fmt.Sprintf("%s\n\n", styleActive.Render(m.fmtCast(m.cursor, 0))))
-			} else {
-				s.WriteString(fmt.Sprintf("%s\n\n", styleInactive.Render(m.blocks[i].text)))
-			}
-			height += m.blocks[i].height + 1
-		} else {
-			for _, line := range strings.Split(m.blocks[i].text, "\n") {
-				s.WriteString(fmt.Sprintf("%s\n", styleInactive.Render(line)))
-				height++
-				if height == m.WindowHeight() {
-					break
+		var style lipgloss.Style
+		if height+m.blocks[i].height+1 <= m.WindowHeight() {
+			if m.focus {
+				style = inactiveStyle
+				if i == m.cursor {
+					style = activeStyle
+					s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.fmtCast(m.cursor, 0))))
+				} else {
+					s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
 				}
+			} else {
+				style = lipgloss.NewStyle().Bold(m.cursor == i)
+				s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
 			}
-		}
-	}
-	s.WriteString(strings.Repeat("\n", m.WindowHeight()-height))
-	return s.String()
-}
-
-func (m *CastsModel) ViewAll() string {
-	var s strings.Builder
-	if m.viewEnd == 0 {
-		m.initViewport()
-	}
-	height := 0
-	for i := m.viewStart; height < m.WindowHeight() && i < len(m.blocks); i++ {
-		style := lipgloss.NewStyle().Bold(m.cursor == i)
-		if height+m.blocks[i].height+1 < m.WindowHeight() {
-			s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
 			height += m.blocks[i].height + 1
 		} else {
 			for _, line := range strings.Split(m.blocks[i].text, "\n") {
@@ -335,36 +257,4 @@ func (m *CastsModel) SetView(v View) {
 	m.cursor = v.Cursor
 	m.viewStart = v.Start
 	m.viewEnd = v.End
-}
-
-func (m *CastsModel) SetFocus(onoff bool, idx int) {
-	m.focus = onoff
-	m.activeField = 0
-	m.cursor = idx
-}
-func (m *CastsModel) IsFocus() bool {
-	return m.focus
-}
-
-func (m *CastsModel) GetItemInFocus() string {
-	castHash := m.hashIdx[m.cursor]
-	message := m.casts.Messages[castHash].Message
-	itemCount := len(message.GetData().GetCastAddBody().Mentions) + len(message.GetData().GetCastAddBody().Embeds) + 1
-	items := make([]string, itemCount+1)
-	items[1] = "fid:" + strconv.FormatUint(message.Data.Fid, 10)
-
-	i := 1
-	for _, fid := range message.GetData().GetCastAddBody().Mentions {
-		i++
-		items[i] = "fid:" + strconv.FormatUint(fid, 10)
-	}
-	for _, embed := range message.GetData().GetCastAddBody().Embeds {
-		i++
-		if embedData := embed.GetCastId(); embedData != nil {
-			items[i] = fmt.Sprintf("cst:%d:%x", embedData.Fid, embedData.Hash)
-		} else {
-			items[i] = fmt.Sprintf("url:%s", embed.GetUrl())
-		}
-	}
-	return items[m.activeField]
 }

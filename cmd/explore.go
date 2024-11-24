@@ -88,9 +88,6 @@ func (t *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.(tea.KeyMsg).String() {
 		case "ctrl+c", "q":
 			return t, tea.Quit
-		case "up", "k", "down", "j":
-			_, cmd := t.casts.Update(msg)
-			return t, cmd
 		case "enter", "right", "l":
 			fid, hash, view := t.casts.Status()
 			cmd1 := func() tea.Msg {
@@ -106,11 +103,13 @@ func (t *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return tui2.UpdateStatusBar{Text: "Loading..."}
 			}
 			cmd2 := func() tea.Msg {
-				t.updateForLeft()
+				_, _, view := t.casts.Status()
+				t.updateForLeft(view)
 				return tui2.UpdateStatusBar{Text: ""}
 			}
 			return t, tea.Sequence(cmd1, cmd2)
-
+		default:
+			t.casts.Update(msg)
 		}
 	case tea.WindowSizeMsg:
 		t.casts.Update(msg)
@@ -168,7 +167,12 @@ func (t *tuiModel) handleThreadView(fid uint64, hash []byte, view tui2.View) {
 	}
 }
 
-func (t *tuiModel) updateForLeft() {
+func (t *tuiModel) updateForLeft(view tui2.View) {
+	if t.casts.IsFocus() {
+		t.casts.SetFocus(false, view.Cursor)
+		return
+	}
+
 	if _, err := t.history.Pop(); err == nil {
 		if prev, err := t.history.Peek(); err == nil {
 			switch prev.Type {
@@ -179,8 +183,6 @@ func (t *tuiModel) updateForLeft() {
 			}
 			t.casts.SetView(tui2.View{Start: prev.ViewStart, End: prev.ViewEnd, Cursor: prev.Cursor})
 			t.casts.SetFocus(false, prev.Cursor)
-
-			//t.cursor = prev.Cursor
 		}
 	}
 }
