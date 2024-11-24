@@ -2,7 +2,6 @@ package tui2
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -96,7 +95,6 @@ func (m *CastsModel) initViewport() {
 }
 
 func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	log.Println(msg, m.cursor, m.focus)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		keys := map[string]func(){

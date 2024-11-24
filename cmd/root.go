@@ -13,7 +13,7 @@ var rootCmd = &cobra.Command{
 	Short: "A command line tool to interact with Farcaster",
 }
 
-var DEBUG = 1
+var DEBUG = 0
 
 func Execute() {
 	if DEBUG != 0 {

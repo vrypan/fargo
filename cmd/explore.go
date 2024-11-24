@@ -162,7 +162,6 @@ func (t *tuiModel) handleThreadView(fid uint64, hash []byte, view tui2.View) {
 			OpenUrl(url)
 		}
 	} else {
-		log.Printf("Setting focus %d\n", view.Cursor)
 		t.casts.SetFocus(true, view.Cursor)
 	}
 }
@@ -196,8 +195,5 @@ func (t *tuiModel) View() string {
 	case history.TYPE_THREAD, history.TYPE_CAST:
 		output.WriteString(t.casts.View())
 	}
-	//fid, hash, status := t.casts.Status()
-	//t.statusBar.SetStatus(fmt.Sprintf("%d/%x %d %d %d %d", fid, hash, status.Start, status.Cursor, status.End, status.Height))
-	//output.WriteString(t.statusBar.View())
 	return output.String()
 }
