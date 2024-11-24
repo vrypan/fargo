@@ -22,12 +22,6 @@ type LoadCastId struct {
 	Hash []byte
 }
 
-type castsBlock struct {
-	id     string
-	text   string
-	height int
-}
-
 type CastsModel struct {
 	cursor      int
 	casts       fctools.CastGroup
@@ -212,27 +206,34 @@ func (m *CastsModel) ViewCasts() string {
 		m.initViewport()
 	}
 	height := 0
-	activeStyle := lipgloss.NewStyle().Bold(true).BorderForeground(lipgloss.Color("#00aa00"))
+	activeStyle := lipgloss.NewStyle().Bold(true).BorderForeground(lipgloss.Color("#00aa00")).Border(lipgloss.NormalBorder(), false, false, false, true)
 	inactiveStyle := lipgloss.NewStyle().Faint(true)
 	for i := m.viewStart; height < m.WindowHeight() && i < len(m.blocks); i++ {
 		var style lipgloss.Style
 		if height+m.blocks[i].height+1 <= m.WindowHeight() {
 			if m.focus {
-				style = inactiveStyle
+				style = inactiveStyle.PaddingLeft(m.blocks[i].padding + 1)
 				if i == m.cursor {
-					style = activeStyle
+					style = activeStyle.PaddingLeft(m.blocks[i].padding + 1)
 					s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.fmtCast(m.cursor, 0))))
 				} else {
+					style = style.Border(lipgloss.HiddenBorder(), false, false, false, true)
 					s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
 				}
 			} else {
-				style = lipgloss.NewStyle().Bold(m.cursor == i)
-				s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
+				if m.cursor == i {
+					style = lipgloss.NewStyle().Bold(true).Border(lipgloss.NormalBorder(), false, false, false, true).PaddingLeft(m.blocks[i].padding + 1)
+					s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
+				} else {
+					style = lipgloss.NewStyle().Bold(false).Border(lipgloss.HiddenBorder(), false, false, false, true).PaddingLeft(m.blocks[i].padding + 1)
+					s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
+				}
+
 			}
 			height += m.blocks[i].height + 1
 		} else {
 			for _, line := range strings.Split(m.blocks[i].text, "\n") {
-				s.WriteString(fmt.Sprintf("%s\n", style.Render(line)))
+				s.WriteString(fmt.Sprintf("%s\n", style.PaddingLeft(m.blocks[i].padding+1).Render(line)))
 				height++
 				if height == m.WindowHeight() {
 					break

@@ -30,7 +30,8 @@ func tsToDate(ts uint32) string {
 
 func selected(s gloss.Style, flag bool) gloss.Style {
 	if flag {
-		return s.Foreground(gloss.Color("#000")).Background(s.GetForeground())
+		//return s.Foreground(gloss.Color("#000")).Background(s.GetForeground())
+		return s.Reverse(true)
 	}
 	return s
 }
