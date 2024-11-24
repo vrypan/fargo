@@ -28,11 +28,11 @@ func (s *StatusBar) GetStatus() string {
 	return s.status
 }
 func (s *StatusBar) SetHeight(h int) *StatusBar {
-	s.height = h + 1
+	s.height = h
 	return s
 }
 func (s *StatusBar) Height() int {
-	return s.height + 1
+	return s.height + 2
 }
 
 func (s *StatusBar) Init() tea.Cmd {
@@ -55,7 +55,8 @@ func (s *StatusBar) View() string {
 	var style = lipgloss.NewStyle().
 		Foreground(mainColor).
 		PaddingLeft(1).
-		Width(s.width).Height(2).AlignVertical(lipgloss.Top).
+		PaddingBottom(1).
+		Width(s.width).Height(s.height).AlignVertical(lipgloss.Top).
 		Border(lipgloss.NormalBorder(), true, false, false, false).
 		BorderForeground(mainColor)
 	statusText := ""

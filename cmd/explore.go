@@ -61,18 +61,15 @@ func init() {
 }
 
 type tuiModel struct {
-	casts     *tui2.CastsModel
-	cursor    int
-	history   *history.History
-	statusBar *tui2.StatusBar
+	casts   *tui2.CastsModel
+	cursor  int
+	history *history.History
 }
 
 func NewTuiModel() *tuiModel {
-	statusText := "↑/↓/←/→ navigate • q quit"
 	m := &tuiModel{
-		casts:     tui2.NewCastsModel(),
-		history:   history.New(1024),
-		statusBar: tui2.NewStatusBar().SetText(statusText).SetHeight(1),
+		casts:   tui2.NewCastsModel(),
+		history: history.New(1024),
 	}
 	return m
 }
@@ -82,7 +79,6 @@ func (t *tuiModel) Init() tea.Cmd {
 }
 
 func (t *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
 	current, err := t.history.Peek()
 	if err != nil {
 		log.Fatal(err)
@@ -91,43 +87,42 @@ func (t *tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.(tea.KeyMsg).String() {
 		case "ctrl+c", "q":
-			cmds = append(cmds, tea.Quit)
+			return t, tea.Quit
 		case "up", "k", "down", "j":
 			_, cmd := t.casts.Update(msg)
-			cmds = append(cmds, cmd)
+			return t, cmd
 		case "enter", "right", "l":
 			fid, hash, view := t.casts.Status()
-			cmd := func() tea.Msg {
-				t.statusBar.SetStatus("Loading...")
+			cmd1 := func() tea.Msg {
+				return tui2.UpdateStatusBar{Text: "Loading..."}
+			}
+			cmd2 := func() tea.Msg {
 				t.updateForEnterOrRight(fid, hash, view, current)
-				return t.statusBar.SetStatus("")
+				return tui2.UpdateStatusBar{Text: ""}
 			}
-			cmds = append(cmds, cmd)
+			return t, tea.Sequence(cmd1, cmd2)
 		case "left", "h":
-			cmd := func() tea.Msg {
-				t.statusBar.SetStatus("Loading...")
-				t.updateForLeft()
-				return t.statusBar.SetStatus("")
+			cmd1 := func() tea.Msg {
+				return tui2.UpdateStatusBar{Text: "Loading..."}
 			}
-			cmds = append(cmds, cmd)
+			cmd2 := func() tea.Msg {
+				t.updateForLeft()
+				return tui2.UpdateStatusBar{Text: ""}
+			}
+			return t, tea.Sequence(cmd1, cmd2)
+
 		}
 	case tea.WindowSizeMsg:
-		h := t.statusBar.Height()
-		t.casts.Update(tea.WindowSizeMsg{Width: msg.(tea.WindowSizeMsg).Width, Height: msg.(tea.WindowSizeMsg).Height - h})
-		t.statusBar.Update(tea.WindowSizeMsg{Width: msg.(tea.WindowSizeMsg).Width, Height: msg.(tea.WindowSizeMsg).Height})
-		/*default:
-		_, cmd := t.casts.Update(msg)
-		cmds = append(cmds, cmd)
-		*/
+		t.casts.Update(msg)
+	default:
+		t.casts.Update(msg)
 	}
-
-	return t, tea.Sequence(cmds...)
+	return t, nil
 }
 
 func (t *tuiModel) updateForEnterOrRight(fid uint64, hash []byte, view tui2.View, current history.Path) {
-
 	if current.Type == history.TYPE_LIST {
-		t.casts.LoadCasts(fid, hash)
+		t.casts.Update(tui2.LoadCastId{Fid: fid, Hash: hash})
 		t.history.SetView(view.Cursor, view.Start, view.End)
 		t.history.Push(history.Path{
 			Type: history.TYPE_THREAD,
@@ -168,12 +163,12 @@ func (t *tuiModel) handleThreadView(fid uint64, hash []byte, view tui2.View) {
 			OpenUrl(url)
 		}
 	} else {
+		log.Printf("Setting focus %d\n", view.Cursor)
 		t.casts.SetFocus(true, view.Cursor)
 	}
 }
 
 func (t *tuiModel) updateForLeft() {
-	t.statusBar.SetStatus("Loading...")
 	if _, err := t.history.Pop(); err == nil {
 		if prev, err := t.history.Peek(); err == nil {
 			switch prev.Type {
@@ -188,7 +183,6 @@ func (t *tuiModel) updateForLeft() {
 			//t.cursor = prev.Cursor
 		}
 	}
-	t.statusBar.SetStatus("")
 }
 
 func (t *tuiModel) View() string {
@@ -202,6 +196,6 @@ func (t *tuiModel) View() string {
 	}
 	//fid, hash, status := t.casts.Status()
 	//t.statusBar.SetStatus(fmt.Sprintf("%d/%x %d %d %d %d", fid, hash, status.Start, status.Cursor, status.End, status.Height))
-	output.WriteString(t.statusBar.View())
+	//output.WriteString(t.statusBar.View())
 	return output.String()
 }

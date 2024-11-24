@@ -2,6 +2,7 @@ package tui2
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,17 @@ import (
 	"github.com/vrypan/fargo/fctools"
 	"github.com/vrypan/fargo/tui"
 )
+
+type UpdateStatusBar struct {
+	Text string
+}
+type LoadFid struct {
+	Fid uint64
+}
+type LoadCastId struct {
+	Fid  uint64
+	Hash []byte
+}
 
 type castsBlock struct {
 	id     string
@@ -30,6 +42,7 @@ type CastsModel struct {
 	focus       bool
 	activeField int
 	resultsNum  uint32
+	statusBar   *StatusBar
 }
 
 type View struct {
@@ -40,7 +53,10 @@ type View struct {
 }
 
 func NewCastsModel() *CastsModel {
-	return &CastsModel{}
+	m := CastsModel{}
+	statusText := "↑/↓/←/→ navigate • q quit"
+	m.statusBar = NewStatusBar().SetText(statusText).SetHeight(1)
+	return &m
 }
 
 func (m *CastsModel) SetResultsCount(count uint32) {
@@ -48,12 +64,18 @@ func (m *CastsModel) SetResultsCount(count uint32) {
 }
 
 func (m *CastsModel) LoadCasts(fid uint64, hash []byte) *CastsModel {
+	cmd := func() tea.Msg { m.statusBar.SetStatus("Loading..."); return nil }
+	m.Update(cmd)
 	m.prepareCasts(fctools.NewCastGroup().FromCast(nil, &farcaster.CastId{Fid: fid, Hash: hash}, true))
+	cmd = func() tea.Msg { m.statusBar.SetStatus(""); return nil }
+	m.Update(cmd)
 	return m
 }
 
 func (m *CastsModel) LoadFid(fid uint64) *CastsModel {
+	m.statusBar.SetStatus("Loading...")
 	m.prepareCasts(fctools.NewCastGroup().FromFid(nil, fid, m.resultsNum))
+	m.statusBar.SetStatus("")
 	return m
 }
 
@@ -78,7 +100,7 @@ func (m *CastsModel) initViewport() {
 	m.viewStart = 0
 	height := 0
 	for i, b := range m.blocks {
-		if height+b.height+1 > m.height {
+		if height+b.height+1 > m.WindowHeight() {
 			m.cursor = 0
 			break
 		}
@@ -128,6 +150,7 @@ func (m *CastsModel) handleListBlocks(padding int) {
 }
 
 func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	log.Println(msg, m.cursor, m.focus)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		keys := map[string]func(){
@@ -170,6 +193,13 @@ func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.statusBar.Update(msg)
+	case UpdateStatusBar:
+		m.statusBar.SetStatus(msg.Text)
+	case LoadFid:
+		m.LoadFid(msg.Fid)
+	case LoadCastId:
+		m.LoadCasts(msg.Fid, msg.Hash)
 	}
 	return m, nil
 }
@@ -204,7 +234,7 @@ func (m *CastsModel) moveCursorDown() {
 func (m *CastsModel) recalculateViewEnd() {
 	height := 0
 	for i := m.viewStart; i < len(m.blocks); i++ {
-		if height+m.blocks[i].height+1 > m.height {
+		if height+m.blocks[i].height+1 > m.WindowHeight() {
 			m.viewEnd = i - 1
 			return
 		}
@@ -216,25 +246,28 @@ func (m *CastsModel) recalculateViewEnd() {
 func (m *CastsModel) recalculateViewStart() {
 	height := 0
 	i := m.viewEnd
-	for ; i >= 0 && height+m.blocks[i].height+1 <= m.height; i-- {
+	for ; i >= 0 && height+m.blocks[i].height+1 <= m.WindowHeight(); i-- {
 		height += m.blocks[i].height + 1
 	}
 	m.viewStart = i + 1
 }
 
+func (m *CastsModel) WindowHeight() int {
+	return max(0, m.height-m.statusBar.Height())
+}
+
 func (m *CastsModel) View() string {
+	ret := ""
 	if m.focus {
-		return m.ViewOne()
+		ret += m.ViewOne()
+	} else {
+		ret += m.ViewAll()
 	}
-	return m.ViewAll()
+	ret += m.statusBar.View()
+	return ret
 }
 
 func (m *CastsModel) ViewOne() string {
-	/*
-		out := m.fmtCast(m.cursor, 2)
-		height := strings.Count(out, "\n")
-		return out + strings.Repeat("\n", m.height-height)
-	*/
 	var s strings.Builder
 	if m.viewEnd == 0 {
 		m.initViewport()
@@ -242,26 +275,25 @@ func (m *CastsModel) ViewOne() string {
 	height := 0
 	styleActive := lipgloss.NewStyle().Bold(true).BorderForeground(lipgloss.Color("#00aa00"))
 	styleInactive := lipgloss.NewStyle().Faint(true)
-	for i := m.viewStart; height < m.height && i < len(m.blocks); i++ {
-		if height+m.blocks[i].height+1 < m.height {
+	for i := m.viewStart; height < m.WindowHeight() && i < len(m.blocks); i++ {
+		if height+m.blocks[i].height+1 < m.WindowHeight() {
 			if i == m.cursor {
 				s.WriteString(fmt.Sprintf("%s\n\n", styleActive.Render(m.fmtCast(m.cursor, 0))))
 			} else {
 				s.WriteString(fmt.Sprintf("%s\n\n", styleInactive.Render(m.blocks[i].text)))
 			}
-
 			height += m.blocks[i].height + 1
 		} else {
 			for _, line := range strings.Split(m.blocks[i].text, "\n") {
 				s.WriteString(fmt.Sprintf("%s\n", styleInactive.Render(line)))
 				height++
-				if height == m.height {
+				if height == m.WindowHeight() {
 					break
 				}
 			}
 		}
 	}
-	s.WriteString(strings.Repeat("\n", m.height-height))
+	s.WriteString(strings.Repeat("\n", m.WindowHeight()-height))
 	return s.String()
 }
 
@@ -271,22 +303,22 @@ func (m *CastsModel) ViewAll() string {
 		m.initViewport()
 	}
 	height := 0
-	for i := m.viewStart; height < m.height && i < len(m.blocks); i++ {
+	for i := m.viewStart; height < m.WindowHeight() && i < len(m.blocks); i++ {
 		style := lipgloss.NewStyle().Bold(m.cursor == i)
-		if height+m.blocks[i].height+1 < m.height {
+		if height+m.blocks[i].height+1 < m.WindowHeight() {
 			s.WriteString(fmt.Sprintf("%s\n\n", style.Render(m.blocks[i].text)))
 			height += m.blocks[i].height + 1
 		} else {
 			for _, line := range strings.Split(m.blocks[i].text, "\n") {
 				s.WriteString(fmt.Sprintf("%s\n", style.Render(line)))
 				height++
-				if height == m.height {
+				if height == m.WindowHeight() {
 					break
 				}
 			}
 		}
 	}
-	s.WriteString(strings.Repeat("\n", m.height-height))
+	s.WriteString(strings.Repeat("\n", m.WindowHeight()-height))
 	return s.String()
 }
 
