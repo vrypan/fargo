@@ -10,6 +10,7 @@ import (
 	"github.com/vrypan/fargo/fctools"
 )
 
+// Message types
 type UpdateStatusBar struct {
 	Text string
 }
@@ -20,20 +21,34 @@ type LoadCastId struct {
 	Fid  uint64
 	Hash []byte
 }
+type MsgUpdateView = View
+
+type ViewType int
+
+const (
+	VIEW_PROFILE ViewType = iota
+	VIEW_LIST
+	VIEW_THREAD
+	VIEW_CAST
+)
 
 type CastsModel struct {
-	cursor      int
-	casts       fctools.CastGroup
-	width       int
-	height      int
-	blocks      []castsBlock
+	casts   fctools.CastGroup
+	blocks  []castsBlock
+	hashIdx []fctools.Hash
+
+	width  int
+	height int
+
+	view        ViewType
 	viewStart   int
 	viewEnd     int
-	hashIdx     []fctools.Hash
+	cursor      int
 	focus       bool
 	activeField int
-	resultsNum  uint32
-	statusBar   *StatusBar
+
+	resultsNum uint32
+	statusBar  *StatusBar
 }
 
 type View struct {
@@ -55,11 +70,13 @@ func (m *CastsModel) SetResultsCount(count uint32) {
 }
 
 func (m *CastsModel) LoadCasts(fid uint64, hash []byte) *CastsModel {
+	m.view = VIEW_THREAD
 	m.prepareModel(fctools.NewCastGroup().FromCast(nil, &farcaster.CastId{Fid: fid, Hash: hash}, true))
 	return m
 }
 
 func (m *CastsModel) LoadFid(fid uint64) *CastsModel {
+	m.view = VIEW_LIST
 	m.prepareModel(fctools.NewCastGroup().FromFid(nil, fid, m.resultsNum))
 	return m
 }
@@ -136,6 +153,8 @@ func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.LoadFid(msg.Fid)
 	case LoadCastId:
 		m.LoadCasts(msg.Fid, msg.Hash)
+	case MsgUpdateView:
+		m.SetView(msg)
 	}
 	return m, nil
 }
@@ -256,4 +275,42 @@ func (m *CastsModel) SetView(v View) {
 	m.cursor = v.Cursor
 	m.viewStart = v.Start
 	m.viewEnd = v.End
+}
+
+// Gets the model's status
+// Can be used by a parent model to decide on actions.
+//
+
+type CastsStatus struct {
+	Fid         uint64
+	Hash        []byte
+	Width       int
+	Height      int
+	View        ViewType
+	ViewStart   int
+	ViewEnd     int
+	Cursor      int
+	Focus       bool
+	ActiveField int
+}
+
+func (s CastsStatus) String() string {
+	return fmt.Sprintf("@%d/0x%x [%d-%d-%d] Focus=%t", s.Fid, s.Hash, s.ViewStart, s.Cursor, s.ViewEnd, s.Focus)
+}
+
+func (m *CastsModel) GetStatus() CastsStatus {
+	hash := m.hashIdx[m.cursor]
+	fid := m.casts.Messages[hash].Message.Data.Fid
+	return CastsStatus{
+		Fid:         fid,
+		Hash:        hash.Bytes(),
+		Width:       m.width,
+		Height:      m.height,
+		View:        m.view,
+		ViewStart:   m.viewStart,
+		ViewEnd:     m.viewEnd,
+		Cursor:      m.cursor,
+		Focus:       m.focus,
+		ActiveField: m.activeField,
+	}
 }
