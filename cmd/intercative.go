@@ -50,7 +50,6 @@ func interactiveRun(cmd *cobra.Command, args []string) {
 			fmt.Printf("Alas, there's been an error: %v", err)
 			os.Exit(1)
 		}
-		fmt.Println(t.history)
 	}
 }
 

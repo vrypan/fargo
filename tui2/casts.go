@@ -114,35 +114,28 @@ func (m *CastsModel) initViewport() {
 func (m *CastsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		keys := map[string]func(){
-			"ctrl+c": func() { m.Quit() },
-			"q":      func() { m.Quit() },
-			"up":     m.moveCursorUp,
-			"down":   m.moveCursorDown,
-			"enter":  func() { m.focus = true },
-			"right":  func() { m.focus = true },
-		}
-
-		activeKeys := map[string]func(){
-			"ctrl+c": func() { m.Quit() },
-			"q":      func() { m.Quit() },
-			"up": func() {
+		switch m.focus {
+		case true:
+			switch msg.String() {
+			case "up":
 				if m.activeField > 0 {
 					m.activeField--
 				}
-			},
-			"down": func() { m.activeField++ },
-			"left": func() { m.focus = false },
-		}
-
-		if m.focus {
-			if fn, ok := activeKeys[msg.String()]; ok {
-				fn()
+			case "down":
+				m.activeField++
+			case "left":
+				m.focus = false
 			}
-		} else if fn, ok := keys[msg.String()]; ok {
-			fn()
+		case false:
+			switch msg.String() {
+			case "up":
+				m.moveCursorUp()
+			case "down":
+				m.moveCursorDown()
+			case "enter", "right":
+				m.focus = true
+			}
 		}
-
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
