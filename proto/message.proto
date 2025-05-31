@@ -1,5 +1,7 @@
 syntax = "proto3";
+
 import "username_proof.proto";
+
 
 /**
   * A Message is a delta operation on the Farcaster network. The message protobuf is an envelope
@@ -15,10 +17,10 @@ message Message {
   optional bytes data_bytes = 7; // MessageData serialized to bytes if using protobuf serialization other than ts-proto
 }
 
-  /**
- * A MessageData object contains properties common to all messages and wraps a body object which
- * contains properties specific to the MessageType.
- */
+/**
+* A MessageData object contains properties common to all messages and wraps a body object which
+* contains properties specific to the MessageType.
+*/
 message MessageData {
   MessageType type = 1; // Type of message contained in the body
   uint64 fid = 2; // Farcaster ID of the user producing the message
@@ -36,7 +38,7 @@ message MessageData {
     LinkBody link_body = 14;
     UserNameProof username_proof_body = 15;
     FrameActionBody frame_action_body = 16;
-    
+
     // Compaction messages
     LinkCompactStateBody link_compact_state_body = 17;
   } // Properties specific to the MessageType
@@ -66,9 +68,9 @@ enum MessageType {
   MESSAGE_TYPE_LINK_REMOVE = 6; // Remove an existing Link
   MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS = 7; // Add a Verification of an Ethereum Address
   MESSAGE_TYPE_VERIFICATION_REMOVE = 8; // Remove a Verification
-//  Deprecated
-//  MESSAGE_TYPE_SIGNER_ADD = 9; // Add a new Ed25519 key pair that signs messages for a user
-//  MESSAGE_TYPE_SIGNER_REMOVE = 10; // Remove an Ed25519 key pair that signs messages for a user
+  //  Deprecated
+  //  MESSAGE_TYPE_SIGNER_ADD = 9; // Add a new Ed25519 key pair that signs messages for a user
+  //  MESSAGE_TYPE_SIGNER_REMOVE = 10; // Remove an Ed25519 key pair that signs messages for a user
   MESSAGE_TYPE_USER_DATA_ADD = 11; // Add metadata about a user
   MESSAGE_TYPE_USERNAME_PROOF = 12; // Add or replace a username proof
   MESSAGE_TYPE_FRAME_ACTION = 13; // A Farcaster Frame action
@@ -98,6 +100,8 @@ enum UserDataType {
   USER_DATA_TYPE_URL = 5; // URL of the user
   USER_DATA_TYPE_USERNAME = 6; // Preferred Name for the user
   USER_DATA_TYPE_LOCATION = 7; // Current location for the user
+  USER_DATA_TYPE_TWITTER = 8; // Username of user on twitter
+  USER_DATA_TYPE_GITHUB = 9; // Username of user on github
 }
 
 message Embed {

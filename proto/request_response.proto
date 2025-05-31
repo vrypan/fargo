@@ -1,88 +1,66 @@
 syntax = "proto3";
 
 import "message.proto";
-import "onchain_event.proto";
+import "blocks.proto";
 import "hub_event.proto";
 import "username_proof.proto";
-import "gossip.proto";
+import "onchain_event.proto";
 
-message Empty {}
+
+message BlocksRequest {
+  uint32 shard_id = 1;
+  uint64 start_block_number = 2;
+  optional uint64 stop_block_number = 3;
+}
+
+message ShardChunksRequest {
+  uint32 shard_id = 1;
+  uint64 start_block_number = 2;
+  optional uint64 stop_block_number = 3;
+}
+
+message ShardChunksResponse {
+  repeated ShardChunk shard_chunks = 1;
+}
 
 message SubscribeRequest {
   repeated HubEventType event_types = 1;
   optional uint64 from_id = 2;
-  optional uint64 total_shards = 3;
-  optional uint64 shard_index = 4;
-}
-
-message EventRequest {
-  uint64 id = 1;
-}
-
-message HubInfoRequest {
-  bool db_stats = 1;
-}
-
-// Response Types for the Sync RPC Methods
-message HubInfoResponse {
-  string version = 1;
-  bool is_syncing = 2;
-  string nickname = 3;
-  string root_hash = 4;
-  DbStats db_stats = 5;
-  string peerId = 6;
-  uint64 hub_operator_fid = 7;
+  //  optional uint32 total_shards = 3; // Not required for snapchain
+  optional uint32 shard_index = 4;
 }
 
 message DbStats {
   uint64 num_messages = 1;
-  uint64 num_fid_events = 2;
-  uint64 num_fname_events = 3;
+  uint64 num_fid_registrations = 2;
   uint64 approx_size = 4;
 }
 
-message SyncStatusRequest {
-  optional string peerId = 1;
-}
-
-message SyncStatusResponse {
-  bool is_syncing = 1;
-  repeated SyncStatus sync_status = 2;
-  bool engine_started = 3;
-}
-
-message SyncStatus {
-  string peerId = 1;
-  string inSync = 2;
-  bool shouldSync = 3;
-  string divergencePrefix = 4;
-  int32 divergenceSecondsAgo = 5;
-  uint64 theirMessages = 6;
-  uint64 ourMessages = 7;
-  int64 lastBadSync = 8;
-  int64 score = 9;
-}
-
-message TrieNodeMetadataResponse {
-  bytes prefix = 1;
-  uint64 num_messages = 2;
-  string hash = 3;
-  repeated TrieNodeMetadataResponse children = 4;
-}
-
-message TrieNodeSnapshotResponse {
-  bytes prefix = 1;
-  repeated string excluded_hashes = 2;
+message ShardInfo {
+  uint32 shard_id = 1;
+  uint64 max_height = 2;
   uint64 num_messages = 3;
-  string root_hash = 4;
+  uint64 num_fid_registrations = 4;
+  uint64 approx_size = 5;
+  uint64 block_delay = 6;
+  uint64 mempool_size = 7;
 }
 
-message TrieNodePrefix {
-  bytes prefix = 1;
+message GetInfoRequest {
 }
 
-message SyncIds {
-  repeated bytes sync_ids = 1;
+// Response Types for the Sync RPC Methods
+message GetInfoResponse {
+  string version = 1;
+  DbStats db_stats = 5;
+  string peerId = 6;
+  uint32 num_shards = 8;
+  repeated ShardInfo shard_infos = 9;
+}
+
+message EventRequest {
+  uint64 id = 1;
+  uint32 shard_index = 5;
 }
 
 message FidRequest {
@@ -105,6 +83,7 @@ message FidsRequest {
   optional uint32 page_size = 1;
   optional bytes page_token = 2;
   optional bool reverse = 3;
+  uint32 shard_id = 4;
 }
 
 message FidsResponse {
@@ -158,14 +137,6 @@ message ReactionsByTargetRequest {
 message UserDataRequest {
   uint64 fid = 1;
   UserDataType user_data_type = 2;
-}
-
-message NameRegistryEventRequest {
-  bytes name = 1;
-}
-
-message RentRegistryEventsRequest {
-  uint64 fid = 1;
 }
 
 message OnChainEventRequest {
@@ -224,6 +195,11 @@ message UsernameProofsResponse {
   repeated UserNameProof proofs = 1;
 }
 
+message ValidationResponse {
+  bool valid = 1;
+  Message message = 2;
+}
+
 message VerificationRequest {
   uint64 fid = 1;
   bytes address = 2;
@@ -264,15 +240,6 @@ message IdRegistryEventByAddressRequest {
   bytes address = 1;
 }
 
-message ContactInfoResponse {
-  repeated ContactInfoContentBody contacts = 1;
-}
-
-message ValidationResponse {
-  bool valid = 1;
-  Message message = 2;
-}
-
 message SubmitBulkMessagesRequest {
   repeated Message messages = 1;
 }
@@ -294,60 +261,28 @@ message SubmitBulkMessagesResponse {
   repeated BulkMessageResponse messages = 1;
 }
 
-message StreamSyncRequest {
-  oneof request {
-    HubInfoRequest get_info = 1;
-    Empty get_current_peers = 2;
-    Empty stop_sync = 3;
-    SyncStatusRequest force_sync = 4;
-    SyncStatusRequest get_sync_status = 5;
-    TrieNodePrefix get_all_sync_ids_by_prefix = 6;
-    SyncIds get_all_messages_by_sync_ids = 7;
-    TrieNodePrefix get_sync_metadata_by_prefix = 8;
-    TrieNodePrefix get_sync_snapshot_by_prefix = 9;
-    OnChainEventRequest get_on_chain_events = 10;
-    FidRequest get_on_chain_signers_by_fid = 11;
-  }
+message TrieNodeMetadataRequest {
+  uint32 shard_id = 1;
+  bytes prefix = 2;
 }
 
-message StreamError {
-  string errCode = 1;
-  string message = 2;
-  string request = 3;
+message TrieNodeMetadataResponse {
+  bytes prefix = 1;
+  uint64 num_messages = 2;
+  string hash = 3;
+  repeated TrieNodeMetadataResponse children = 4;
 }
 
-message StreamSyncResponse {
-  oneof response {
-    HubInfoResponse get_info = 1;
-    ContactInfoResponse get_current_peers = 2;
-    SyncStatusResponse stop_sync = 3;
-    SyncStatusResponse force_sync = 4;
-    SyncStatusResponse get_sync_status = 5;
-    SyncIds get_all_sync_ids_by_prefix = 6;
-    MessagesResponse get_all_messages_by_sync_ids = 7;
-    TrieNodeMetadataResponse get_sync_metadata_by_prefix = 8;
-    TrieNodeSnapshotResponse get_sync_snapshot_by_prefix = 9;
-    OnChainEventResponse get_on_chain_events = 10;
-    OnChainEventResponse get_on_chain_signers_by_fid = 11;
-    StreamError error = 12;
-  }
+message EventsRequest {
+  uint64 start_id = 1;
+  optional uint32 shard_index = 2;
+  optional uint64 stop_id = 3;
+  optional uint32 page_size = 4;
+  optional bytes page_token = 5;
+  optional bool reverse = 6;
 }
 
-message StreamFetchRequest {
-  string idempotency_key = 1;
-  oneof request {
-    FidTimestampRequest cast_messages_by_fid = 2;
-    FidTimestampRequest reaction_messages_by_fid = 3;
-    FidTimestampRequest verification_messages_by_fid = 4;
-    FidTimestampRequest user_data_messages_by_fid = 5;
-    FidTimestampRequest link_messages_by_fid = 6;
-  }
-}
-
-message StreamFetchResponse {
-  string idempotency_key = 1;
-  oneof response {
-    MessagesResponse messages = 2;
-    StreamError error = 3;
-  }
+message EventsResponse {
+  repeated HubEvent events = 1;
+  optional bytes next_page_token = 2;
 }

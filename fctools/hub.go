@@ -9,7 +9,6 @@ import (
 	//"time"
 	"crypto/ed25519"
 	"encoding/hex"
-	"encoding/json"
 
 	"github.com/vrypan/fargo/config"
 	pb "github.com/vrypan/fargo/farcaster"
@@ -60,6 +59,8 @@ func (h FarcasterHub) Close() {
 	h.ctx_cancel()
 }
 
+/*
+Not avaliable on Snapchain
 func (hub FarcasterHub) HubInfo() ([]byte, error) {
 	res, err := hub.client.GetInfo(hub.ctx, &pb.HubInfoRequest{DbStats: false})
 	if err != nil {
@@ -69,6 +70,7 @@ func (hub FarcasterHub) HubInfo() ([]byte, error) {
 	b, err := json.Marshal(res)
 	return b, err
 }
+*/
 
 func (hub FarcasterHub) SubmitMessageData(messageData *pb.MessageData, signerPrivate, signerPublic []byte) (*pb.Message, error) {
 	const hashLen = 20
