@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -33,7 +34,7 @@ func runSendCast(cmd *cobra.Command, args []string) {
 
 	var err error
 	var privateKey []byte
-	var publicKey []byte
+	// var publicKey []byte
 	var s string
 
 	var castMessageBodies []*pb.CastAddBody
@@ -49,16 +50,8 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		log.Fatalf("Private key error: %v\nUse --help to see options.", err)
 	}
 
-	s = config.GetString("cast.pubkey")
-	if c, _ := cmd.Flags().GetString("pubkey"); c != "" {
-		s = c
-	}
-	if len(s) < 2 {
-		log.Fatal("Public key error: public key string too short")
-	}
-	if publicKey, err = hex.DecodeString(s[2:]); err != nil {
-		log.Fatalf("Public key error: %v\nUse --help to see options.", err)
-	}
+	expandedKey := ed25519.NewKeyFromSeed(privateKey)
+	publicKey := expandedKey.Public().(ed25519.PublicKey)
 
 	fid := uint64(config.GetInt("cast.fid"))
 	if c, _ := cmd.Flags().GetUint64("fid"); c > 0 {
