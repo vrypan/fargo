@@ -61,7 +61,8 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		log.Fatal("No fid: fid is zero. Use --help to see options.")
 	}
 
-	replyToFlag, _ := cmd.Flags().GetString("reply-to")
+	replyToCastFlag, _ := cmd.Flags().GetString("reply-to-cast")
+	replyToUrlFlag, _ := cmd.Flags().GetString("reply-to-url")
 
 	prepareFlag, _ := cmd.Flags().GetBool("prepare")
 
@@ -105,11 +106,15 @@ func runSendCast(cmd *cobra.Command, args []string) {
 		}
 	}
 	for _, messageBody := range castMessageBodies {
-		if replyToFlag != "" {
-			parent, parentHashString := ParseFcURI(replyToFlag)
+		if replyToCastFlag != "" {
+			parent, parentHashString := ParseFcURI(replyToCastFlag)
 			parentHash := HashToBytes(parentHashString[0])
 			parentCast := &pb.CastAddBody_ParentCastId{ParentCastId: &pb.CastId{Fid: parent.Fid, Hash: parentHash}}
 			messageBody.Parent = parentCast
+		}
+		if replyToUrlFlag != "" {
+			parentUrl := &pb.CastAddBody_ParentUrl{ParentUrl: replyToUrlFlag}
+			messageBody.Parent = parentUrl
 		}
 		messageData := &pb.MessageData{
 			Type:      pb.MessageType(pb.MessageType_value["MESSAGE_TYPE_CAST_ADD"]),
@@ -136,15 +141,16 @@ func runSendCast(cmd *cobra.Command, args []string) {
 			}
 			fmt.Printf("Sent: @%d/0x%s\n", msg.Data.Fid, hex.EncodeToString(msg.Hash))
 		}
-		replyToFlag = "@" + strconv.FormatInt(int64(fid), 10) + "/" + "0x" + hex.EncodeToString(message.Hash)
+		replyToCastFlag = "@" + strconv.FormatInt(int64(fid), 10) + "/" + "0x" + hex.EncodeToString(message.Hash)
+		replyToUrlFlag = "" // When this creates a cast storm, only the first cast should use FIP-2.
 	}
 }
 
 func init() {
 	sendCmd.AddCommand(sendCastCmd)
 	sendCastCmd.Flags().Uint64P("fid", "", 0, "Fid who is casting")
-	sendCastCmd.Flags().StringP("pubkey", "", "", "Application public key. Ex: 0xdef1234....")
 	sendCastCmd.Flags().StringP("privkey", "", "", "Application private key. Ex: 0xabc1234....")
-	sendCastCmd.Flags().StringP("reply-to", "", "", "Reply to a cast. The expected format is @fid/0xhash")
+	sendCastCmd.Flags().StringP("reply-to-cast", "", "", "Reply to a cast. The expected format is @fid/0xhash")
+	sendCastCmd.Flags().StringP("reply-to-url", "", "", "Reply to a URL (aka FIP2)")
 	sendCastCmd.Flags().BoolP("prepare", "", false, "Prepare the Message object and print it, but don't send it")
 }
