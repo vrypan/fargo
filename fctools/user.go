@@ -23,7 +23,7 @@ func (u *User) FromFid(fid uint64) *User {
 	return u
 }
 
-func (u *User) FromFname(hub *FarcasterHub, fname string) *User {
+func (u *User) FromFname(hub *FarcasterHub, fname string) (*User, error) {
 	fid, err := strconv.ParseUint(fname, 10, 64)
 	if err != nil {
 		if hub == nil {
@@ -32,11 +32,11 @@ func (u *User) FromFname(hub *FarcasterHub, fname string) *User {
 		}
 		fid, err = hub.GetFidByUsername(fname)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 	}
 	u.Fid = fid
-	return u
+	return u, nil
 }
 
 /*

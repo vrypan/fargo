@@ -25,7 +25,10 @@ func ParseFcURI(uri string) (*fctools.User, []string) {
 	if parts[0][0:1] != "@" {
 		log.Fatal("Path should start with @")
 	}
-	user := fctools.NewUser().FromFname(nil, parts[0][1:])
+	user, err := fctools.NewUser().FromFname(nil, parts[0][1:])
+	if err != nil {
+		log.Fatal(err)
+	}
 	return user, parts[1:]
 }
 

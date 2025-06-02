@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -30,6 +31,21 @@ type FarcasterHub struct {
 	ctx_cancel context.CancelFunc
 }
 
+func apiKeyInterceptor(header, value string) grpc.UnaryClientInterceptor {
+	return func(
+		ctx context.Context,
+		method string,
+		req, reply interface{},
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption,
+	) error {
+		md := metadata.Pairs(header, value)
+		ctx = metadata.NewOutgoingContext(ctx, md)
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
+
 func NewFarcasterHub() *FarcasterHub {
 	config.Load()
 	hubAddr := config.GetString("hub.host") + ":" + config.GetString("hub.port")
@@ -38,8 +54,33 @@ func NewFarcasterHub() *FarcasterHub {
 	if config.GetBool("hub.ssl") {
 		cred = credentials.NewClientTLSFromCert(nil, "")
 	}
+	// cred = credentials.NewClientTLSFromCert(nil, "")
+	// hubAddr = "snapchain-grpc-api.neynar.com:443"
+	// apiKey := "Meynar API key"
+	// interceptor := apiKeyInterceptor("x-api-key", apiKey)
+	/*
+			creds := credentials.NewClientTLSFromCert(nil, "")
+		    apiKey := "C54B09F3-B583-4CA7-BACA-84575603811D"
+		    interceptor := apiKeyInterceptor("x-api-key", apiKey)
 
-	conn, err := grpc.DialContext(context.Background(), hubAddr, grpc.WithTransportCredentials(cred))
+		    conn, err := grpc.Dial(
+		        "snapchain-grpc-api.neynar.com:443",
+		        grpc.WithTransportCredentials(creds),
+		        grpc.WithUnaryInterceptor(interceptor),
+		        grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(20*1024*1024)),
+		    )
+		    if err != nil {
+		        log.Fatalf("Failed to connect: %v", err)
+		    }
+		    defer conn.Close()
+
+	*/
+	conn, err := grpc.Dial(
+		hubAddr,
+		grpc.WithTransportCredentials(cred),
+		// grpc.WithUnaryInterceptor(interceptor),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(20*1024*1024)),
+	)
 	if err != nil {
 		log.Fatalf("Did not connect: %v", err)
 	}

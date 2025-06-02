@@ -14,6 +14,7 @@ func Test_UserJson(t *testing.T) {
 }
 
 func Test_UserString(t *testing.T) {
-	u := NewUser().FromFname(nil, "vrypan").FetchUserData(nil, nil)
-	t.Logf("\n%s", u)
+	u, _ := NewUser().FromFname(nil, "vrypan")
+	data := u.FetchUserData(nil, nil)
+	t.Logf("\n%s", data)
 }
