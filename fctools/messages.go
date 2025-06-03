@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	pb "github.com/vrypan/fargo/farcaster"
+	pb "github.com/vrypan/farcaster-go/farcaster"
 	"github.com/zeebo/blake3"
 	"google.golang.org/protobuf/proto"
 )

@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	pb "github.com/vrypan/fargo/farcaster"
+	pb "github.com/vrypan/farcaster-go/farcaster"
 )
 
 func Test_JsonThread(t *testing.T) {

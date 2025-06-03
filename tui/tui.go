@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-color-term/go-color-term/coloring"
 	"github.com/muesli/reflow/wordwrap"
-	pb "github.com/vrypan/fargo/farcaster"
+	pb "github.com/vrypan/farcaster-go/farcaster"
 	"github.com/vrypan/fargo/fctools"
 )
 

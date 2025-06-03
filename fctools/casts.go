@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	pb "github.com/vrypan/fargo/farcaster"
+	pb "github.com/vrypan/farcaster-go/farcaster"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

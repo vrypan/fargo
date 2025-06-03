@@ -6,7 +6,7 @@ import (
 	"time"
 
 	gloss "github.com/charmbracelet/lipgloss"
-	pb "github.com/vrypan/fargo/farcaster"
+	pb "github.com/vrypan/farcaster-go/farcaster"
 )
 
 const FARCASTER_EPOCH int64 = 1609459200

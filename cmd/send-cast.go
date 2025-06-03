@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	pb "github.com/vrypan/farcaster-go/farcaster"
 	"github.com/vrypan/fargo/config"
-	pb "github.com/vrypan/fargo/farcaster"
 	"github.com/vrypan/fargo/fctools"
 	db "github.com/vrypan/fargo/localdb"
 )

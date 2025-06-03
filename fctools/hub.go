@@ -10,8 +10,8 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 
+	pb "github.com/vrypan/farcaster-go/farcaster"
 	"github.com/vrypan/fargo/config"
-	pb "github.com/vrypan/fargo/farcaster"
 	db "github.com/vrypan/fargo/localdb"
 	"github.com/zeebo/blake3"
 	"google.golang.org/grpc"

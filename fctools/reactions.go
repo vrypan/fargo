@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	pb "github.com/vrypan/fargo/farcaster"
+	pb "github.com/vrypan/farcaster-go/farcaster"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
