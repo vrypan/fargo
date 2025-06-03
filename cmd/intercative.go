@@ -19,7 +19,8 @@ import (
 var interactiveCmd = &cobra.Command{
 	Use:   "interactive [@username]/casts",
 	Short: "Interactive Farcaster explorer",
-	Long: `It only supports "@username/casts" for now.
+	Long: `**Experimental and buggy feature**
+It only supports "@username/casts" for now.
 Ex.: fargo explore @dwr/casts
 `,
 	Run: interactiveRun,
