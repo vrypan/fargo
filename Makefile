@@ -3,7 +3,7 @@ FARGO_VERSION := $(shell git describe --tags 2>/dev/null || echo "v0.0.0")
 
 BINS = fargo
 PROTO_FILES := $(wildcard proto/*.proto)
-FARGO_SOURCES := $(wildcard */*.go)
+FARGO_SOURCES := $(wildcard */*.go go.mod)
 
 # Colors for output
 GREEN = \033[0;32m
