@@ -21,6 +21,29 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func chainUnaryInterceptors(interceptors ...grpc.UnaryClientInterceptor) grpc.UnaryClientInterceptor {
+	return func(
+		ctx context.Context,
+		method string,
+		req, reply interface{},
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption,
+	) error {
+		// Chain interceptors in reverse
+		chain := invoker
+		for i := len(interceptors) - 1; i >= 0; i-- {
+			current := interceptors[i]
+			chain = func(current grpc.UnaryClientInterceptor, next grpc.UnaryInvoker) grpc.UnaryInvoker {
+				return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, opts ...grpc.CallOption) error {
+					return current(ctx, method, req, reply, cc, next, opts...)
+				}
+			}(current, chain)
+		}
+		return chain(ctx, method, req, reply, cc, opts...)
+	}
+}
+
 const FARCASTER_EPOCH int64 = 1609459200
 
 type FarcasterHub struct {
@@ -42,6 +65,12 @@ func apiKeyInterceptor(header, value string) grpc.UnaryClientInterceptor {
 	) error {
 		md := metadata.Pairs(header, value)
 		ctx = metadata.NewOutgoingContext(ctx, md)
+
+		log.Printf("[gRPC] Method: %s", method)
+		log.Printf("[gRPC] Outgoing Headers: %v", md)
+		log.Printf("[gRPC] Request: %v", req)
+		log.Printf("[gRPC] Reply: %v", reply)
+		log.Printf("[gRPC] Context: %v", ctx)
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 }
@@ -54,38 +83,35 @@ func NewFarcasterHub() *FarcasterHub {
 	if config.GetBool("hub.ssl") {
 		cred = credentials.NewClientTLSFromCert(nil, "")
 	}
-	// cred = credentials.NewClientTLSFromCert(nil, "")
-	// hubAddr = "snapchain-grpc-api.neynar.com:443"
-	// apiKey := "Meynar API key"
-	// interceptor := apiKeyInterceptor("x-api-key", apiKey)
-	/*
-			creds := credentials.NewClientTLSFromCert(nil, "")
-		    apiKey := "C54B09F3-B583-4CA7-BACA-84575603811D"
-		    interceptor := apiKeyInterceptor("x-api-key", apiKey)
+	apiKey := "21C81637-A8AD-4DAC-A470-A38858D05CA2"
 
-		    conn, err := grpc.Dial(
-		        "snapchain-grpc-api.neynar.com:443",
-		        grpc.WithTransportCredentials(creds),
-		        grpc.WithUnaryInterceptor(interceptor),
-		        grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(20*1024*1024)),
-		    )
-		    if err != nil {
-		        log.Fatalf("Failed to connect: %v", err)
-		    }
-		    defer conn.Close()
+	hubAddr = "snapchain-grpc-api.neynar.com:443"
+	cred = credentials.NewClientTLSFromCert(nil, "")
 
-	*/
+	interceptor := apiKeyInterceptor("x-api-key", apiKey)
+
 	conn, err := grpc.Dial(
 		hubAddr,
 		grpc.WithTransportCredentials(cred),
-		// grpc.WithUnaryInterceptor(interceptor),
+		grpc.WithUnaryInterceptor(interceptor),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(20*1024*1024)),
 	)
+	if err != nil {
+		log.Fatalf("Failed to connect: %v", err)
+	}
+
 	if err != nil {
 		log.Fatalf("Did not connect: %v", err)
 	}
 	client := pb.NewHubServiceClient(conn)
+
 	ctx, cancel := context.WithCancel(context.Background())
+	// info, err := client.GetInfo(ctx, &pb.GetInfoRequest{})
+	/*reverse := true
+	pageSize := uint32(10)
+	info, err := client.GetCastsByFid(ctx, &pb.FidRequest{Fid: 280, Reverse: &reverse, PageSize: &pageSize})
+	*/
+	// fmt.Println("\n", "DEBUG\n", info, "\n", err)
 	return &FarcasterHub{
 		hubAddr:    hubAddr,
 		conn:       conn,
@@ -233,6 +259,7 @@ func (hub FarcasterHub) PrxGetFidByUsername(username string) (uint64, error) {
 func (hub FarcasterHub) GetCastsByFid(fid uint64, pageSize uint32) ([]*pb.Message, error) {
 	reverse := true
 	msg, err := hub.client.GetCastsByFid(hub.ctx, &pb.FidRequest{Fid: fid, Reverse: &reverse, PageSize: &pageSize})
+	fmt.Println(msg, err)
 	if err != nil {
 		return nil, err
 	}
