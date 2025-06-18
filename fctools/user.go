@@ -43,24 +43,20 @@ func (u *User) FromFname(hub *FarcasterHub, fname string) (*User, error) {
 hub == nil --> Create new hub connection
 types == nil --> Fetch all USER_DATA_TYPE_*
 */
-func (u *User) FetchUserData(hub *FarcasterHub, types []string) *User {
+func (u *User) FetchUserData(hub *FarcasterHub) *User {
 	// db.Open()
 	// defer db.Close()
 	if hub == nil {
 		hub = NewFarcasterHub()
 		defer hub.Close()
 	}
-	if types == nil {
-		types = make([]string, len(pb.UserDataType_name))
-		for _, tn := range pb.UserDataType_name {
-			types = append(types, tn)
-		}
+	messages, err := hub.GetUserDataByFid(u.Fid)
+	if err != nil {
+		return u
 	}
-	for _, t := range types {
-		message, err := hub.GetUserData(u.Fid, t)
-		if err == nil {
-			u.UserData[t] = message
-		}
+	for _, m := range messages.Messages {
+		udt_name := m.Data.GetUserDataBody().Type.String()
+		u.UserData[udt_name] = m
 	}
 	return u
 }

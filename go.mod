@@ -21,9 +21,7 @@ require (
 
 require (
 	github.com/charmbracelet/bubbletea v1.2.2
-	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/sirupsen/logrus v1.4.2
-	github.com/vrypan/farcaster-go v0.2.22
+	github.com/vrypan/farcaster-go v0.3.0
 )
 
 require (
@@ -39,7 +37,6 @@ require (
 	github.com/golang/glog v1.2.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v1.12.1 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect

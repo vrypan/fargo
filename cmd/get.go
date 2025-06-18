@@ -59,7 +59,7 @@ func getRun(cmd *cobra.Command, args []string) {
 
 	switch {
 	case len(parts) == 1 && parts[0] == "profile":
-		user.FetchUserData(hub, nil)
+		user.FetchUserData(hub)
 		if !jsonFlag {
 			fmt.Println(user.String())
 		} else {
@@ -71,9 +71,9 @@ func getRun(cmd *cobra.Command, args []string) {
 		}
 	case len(parts) == 2 && parts[0] == "profile":
 		t := strings.ToUpper("USER_DATA_TYPE_" + parts[1])
-		user.FetchUserData(hub, nil)
+		user.FetchUserData(hub)
 		if !jsonFlag {
-			s := user.FetchUserData(hub, []string{t}).Value(t)
+			s := user.FetchUserData(hub).Value(t)
 			fmt.Println(s)
 		} else {
 			if b, err := user.Json(t, jhexFlag, jdatesFlag); err != nil {

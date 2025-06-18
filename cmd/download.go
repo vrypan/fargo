@@ -66,11 +66,11 @@ func downloadRun(cmd *cobra.Command, args []string) {
 
 	switch {
 	case len(parts) == 1 && parts[0] == "profile":
-		s := user.FetchUserData(hub, nil).String()
+		s := user.FetchUserData(hub).String()
 		fmt.Println(s)
 
 	case len(parts) == 2 && parts[0] == "profile":
-		s := user.FetchUserData(hub, []string{parts[1]}).Value(parts[1])
+		s := user.FetchUserData(hub).Value(parts[1])
 		fmt.Println(s)
 
 	case len(parts) == 1 && parts[0] == "casts":
