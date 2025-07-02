@@ -30,7 +30,7 @@ func (m *CastsModel) renderBlocks(hash *fctools.Hash, padding int) {
 func (m *CastsModel) handleThreadBlocks(hash *fctools.Hash, padding int) {
 	idx := m.cursor
 	m.hashIdx[idx] = *hash
-	text := m.fmtCast(idx, 0)
+	text := m.fmtCast(idx, padding)
 	m.blocks[idx] = castsBlock{
 		id:      hash.String(),
 		text:    text,
@@ -39,7 +39,7 @@ func (m *CastsModel) handleThreadBlocks(hash *fctools.Hash, padding int) {
 	}
 	m.cursor++
 	for _, reply := range m.casts.Messages[*hash].Replies {
-		m.handleThreadBlocks(&reply, padding+4)
+		m.handleThreadBlocks(&reply, padding+1)
 	}
 }
 

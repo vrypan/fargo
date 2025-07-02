@@ -30,7 +30,6 @@ func tsToDate(ts uint32) string {
 
 func selected(s gloss.Style, flag bool) gloss.Style {
 	if flag {
-		//return s.Foreground(gloss.Color("#000")).Background(s.GetForeground())
 		return s.Reverse(true)
 	}
 	return s
@@ -60,8 +59,10 @@ func (m *CastsModel) fmtCast(idx int, margin int) string {
 	if parent := castAddBody.GetParent(); parent != nil {
 		switch parent.(type) {
 		case *pb.CastAddBody_ParentCastId:
-			id := m.casts.Fnames[castAddBody.GetParentCastId().Fid]
-			builder.WriteString(fmt.Sprintf("↳ In reply to @%s/0x%x\n\n", id, castAddBody.GetParentCastId().Hash))
+			if margin == 0 {
+				id := m.casts.Fnames[castAddBody.GetParentCastId().Fid]
+				builder.WriteString(fmt.Sprintf("↳ In reply to @%s/0x%x\n\n", id, castAddBody.GetParentCastId().Hash))
+			}
 		case *pb.CastAddBody_ParentUrl:
 			builder.WriteString(fmt.Sprintf("↳ In reply to %s\n\n", castAddBody.GetParentUrl()))
 		}

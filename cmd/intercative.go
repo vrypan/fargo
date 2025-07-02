@@ -112,6 +112,9 @@ func (t *tuiModel2) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				action := t.casts.GetItemInFocus()
+				if len(action) < 3 {
+					return t, tea.Sequence(cmds...)
+				}
 				actionType := action[0:3]
 				switch actionType {
 				case "fid":
