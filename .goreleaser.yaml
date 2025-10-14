@@ -55,4 +55,5 @@ brews:
       owner: vrypan
       name: homebrew-fargo
       branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
 
