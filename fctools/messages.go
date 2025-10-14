@@ -29,6 +29,7 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 	)
 
 	urlRe := regexp.MustCompile(`^\[(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)\](\S*)$`)
+	eipUrlRe := regexp.MustCompile(`^\[(eip155:[1-9][0-9]*/[^\]]+)\](\S*)$`)
 	fnameRe := regexp.MustCompile(`^@([a-z0-9][a-z0-9-]{0,15})((\.eth)?)(\S*)`)
 
 	lines := strings.Split(text, "\n")
@@ -54,6 +55,24 @@ func ProcessCastBody(text string) (string, []uint32, []uint64, []*pb.Embed, stri
 				}
 			case urlRe.MatchString(word):
 				if matched := urlRe.FindStringSubmatch(word); matched != nil {
+					if len(resultText+"["+strconv.Itoa(embedCount+1)+"]") > 1024 {
+						return resultText, mentionPositions, mentions, embeds, fmtMoreText(word, words[wIdx+1:], lines[lIdx+1:])
+					}
+					embeds = append(embeds, &pb.Embed{
+						Embed: &pb.Embed_Url{Url: matched[1]},
+					})
+					if wIdx > 0 {
+						resultText += " "
+						offset++
+					}
+					resultText += "[" + strconv.Itoa(embedCount+1) + "]"
+					offset += 3
+					embedCount++
+					resultText += matched[2]
+					offset += len(matched[2])
+				}
+			case eipUrlRe.MatchString(word):
+				if matched := eipUrlRe.FindStringSubmatch(word); matched != nil {
 					if len(resultText+"["+strconv.Itoa(embedCount+1)+"]") > 1024 {
 						return resultText, mentionPositions, mentions, embeds, fmtMoreText(word, words[wIdx+1:], lines[lIdx+1:])
 					}
