@@ -53,7 +53,7 @@ brews:
       system "#{bin}/fargo version"
     repository:
       owner: vrypan
-      name: homebrew-fargo
+      name: homebrew-tap
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
 

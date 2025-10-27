@@ -4,14 +4,22 @@
 
 # Install
 
-## Generic
+## From Source
 Clone the repo, and run `make local`. Copy the generated binary `fargo` to a location in your `$PATH`.
 
 ## Homebrew
 
 Fargo can be installed with Brew by using the command below.
 
-`brew install vrypan/fargo/fargo`
+`brew install vrypan/tap/fargo`
+
+> [!WARNING]
+> The homebrew tap has changed since v0.4.4. If you have alread installed a version <=0.4.3 do
+> ```
+> brew uninstall fargo
+> brew untap vrypan/fargo
+> brew tap vrypan/tap
+> brew install vrypan/tap/fargo
 
 # Use
 
