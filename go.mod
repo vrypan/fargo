@@ -21,7 +21,7 @@ require (
 
 require (
 	github.com/charmbracelet/bubbletea v1.2.2
-	github.com/vrypan/farcaster-go v0.9.0
+	github.com/vrypan/farcaster-go v0.11.0
 )
 
 require (
